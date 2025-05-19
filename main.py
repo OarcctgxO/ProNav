@@ -7,7 +7,6 @@ from bodies import air_body, missile
 from plotter import SimulationPlotter
 import laws
 
-
 class SimulationApp:
     def __init__(self, root):
         self.root = root

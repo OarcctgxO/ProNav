@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import tkinter as tk
-import math
 
 class SimulationPlotter:
     def __init__(self, master=None):
@@ -72,8 +71,6 @@ class SimulationPlotter:
         self.ax.set_xlim(min(x_min, 0) - margin, max(x_max, 10) + margin)
         self.ax.set_ylim(min(y_min, 0) - margin, max(y_max, 10) + margin)
         
-        
-    
     def reset_trajectories(self):
         self.aircraft_path = []
         self.missile_path = []

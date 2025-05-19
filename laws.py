@@ -1,4 +1,4 @@
-from math import atan2, sqrt, hypot
+from math import atan2, sqrt, hypot, pi
 import numpy as np
 class law:
     @staticmethod
@@ -23,8 +23,6 @@ class TPN(law):
         calc_ax = -a * (pursuer.vy / vp)
         calc_ay = a * (pursuer.vx / vp)
         return [calc_ax, calc_ay]
-    
-from math import hypot, atan2, pi
 
 class PP(law):
     @staticmethod
@@ -51,6 +49,7 @@ class PP(law):
         ay =  a_perp * pursuer.vx / vp
         
         return [ax, ay]
+    
 class APN(TPN):
     @staticmethod
     def calc_a(pursuer, target, N):
@@ -79,6 +78,7 @@ class APN(TPN):
         ay += (N / 2) * a_perp * n_y
         
         return [ax, ay]
+    
 class ZEMPN(law):
     @staticmethod
     def calc_a(pursuer, target, N):
