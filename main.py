@@ -1,10 +1,8 @@
-import math
 import matplotlib
 
 matplotlib.use("TkAgg")
 import tkinter as tk
 from tkinter import ttk
-from tkinter import Tk, N, S, E, W
 from bodies import air_body, missile
 from plotter import SimulationPlotter
 import laws
