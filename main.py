@@ -31,7 +31,7 @@ class SimulationApp:
 
         ttk.Label(control_frame, text="Закон наведения:").pack()
         self.guidance_law = ttk.Combobox(
-            control_frame, values=["PP", "TPN", "APN", 'ZEMPN'], state="readonly"
+            control_frame, values=["PP", "TPN", "APN", 'ZEMPN', 'ZEMAPN'], state="readonly"
         )
         self.guidance_law.set("PP")
         self.guidance_law.pack(pady=5)

@@ -84,8 +84,8 @@ class ZEMPN(law):
     def calc_a(pursuer, target, N):
         x = target.x - pursuer.x
         y = target.y - pursuer.y
-        vx = pursuer.vx - target.vx
-        vy = pursuer.vy - target.vy
+        vx = target.vx - pursuer.vx
+        vy = target.vy - pursuer.vy
         
         epsilon = 1e-6
         numerator = x * vx + y * vy
@@ -94,6 +94,36 @@ class ZEMPN(law):
         
         ZEMx = x + vx * tgo
         ZEMy = y + vy * tgo
+        
+        tgo_sq = tgo**2 + epsilon
+        ax_orig = (N * ZEMx) / tgo_sq
+        ay_orig = (N * ZEMy) / tgo_sq
+        
+        vp_x, vp_y = pursuer.vx, pursuer.vy
+        dot = ax_orig * vp_x + ay_orig * vp_y
+        mag_vp_sq = vp_x**2 + vp_y**2 + epsilon
+        ax = ax_orig - (dot / mag_vp_sq) * vp_x
+        ay = ay_orig - (dot / mag_vp_sq) * vp_y
+        
+        return [ax, ay]
+    
+class ZEMAPN(law):
+    @staticmethod
+    def calc_a(pursuer, target, N):
+        x = target.x - pursuer.x
+        y = target.y - pursuer.y
+        vx = target.vx - pursuer.vx
+        vy = target.vy - pursuer.vy
+        ax = target.ax
+        ay = target.ay
+        
+        epsilon = 1e-6
+        numerator = x * vx + y * vy
+        denominator = vx**2 + vy**2 + epsilon
+        tgo = -numerator / denominator
+        
+        ZEMx = x + vx * tgo + 0.5 * ax * tgo**2
+        ZEMy = y + vy * tgo + 0.5 * ay * tgo**2
         
         tgo_sq = tgo**2 + epsilon
         ax_orig = (N * ZEMx) / tgo_sq
