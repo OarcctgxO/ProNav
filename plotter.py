@@ -21,7 +21,7 @@ class SimulationPlotter:
         self.ax.grid(True)
         self.ax.set_title("Симуляция наведения")
         
-        circle = plt.Circle((0, 0), 1, color='g', fill=False, linestyle='--', label='Зона защиты')
+        circle = plt.Circle((0, 0), 1, color='g', fill=False, linestyle='--')
         self.ax.add_patch(circle)
         
         self.aircraft_line, = self.ax.plot([], [], 'b-', alpha=0.5, label='Самолет')
