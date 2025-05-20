@@ -106,7 +106,7 @@ class SimulationApp:
         self.guidance_law.config(state=tk.DISABLED)
         self.plotter.reset_trajectories()
 
-        self.aircraft = air_body(x=20.0, y=20.0, vx=-5.5, vy=0.0, a=0.0, ax=0.0, ay=0.0)
+        self.aircraft = air_body(x=20.0, y=20.0, vx=-5., vy=0.0, a=0.0, ax=0.0, ay=0.0)
 
         self.missile = missile(
             x=0.0,
@@ -156,6 +156,7 @@ class SimulationApp:
         dt = 1 / 60
 
         try:
+            self.update_acceleration()
             self.aircraft.calc_move(dt)
             self.missile.calc_move(dt)
 

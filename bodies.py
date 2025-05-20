@@ -25,8 +25,9 @@ class air_body:
             scale = self.initial_speed / current_speed
             new_vx *= scale
             new_vy *= scale
-            self.ax *= scale
-            self.ay *= scale
+        
+        self.ax = (new_vx - self.vx) / dt
+        self.ay = (new_vy - self.vy) / dt
 
         # Рассчитываем перемещение как среднюю скорость * dt
         avg_vx = (original_vx + new_vx) / 2
