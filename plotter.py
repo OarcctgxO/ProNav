@@ -5,7 +5,7 @@ import tkinter as tk
 class SimulationPlotter:
     def __init__(self, master=None):
         self.fig, self.ax = plt.subplots(figsize=(8, 8))
-        
+        self.ax.set_aspect('equal', adjustable='box')
         if master:
             self.canvas = FigureCanvasTkAgg(self.fig, master=master)
             self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
