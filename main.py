@@ -153,7 +153,7 @@ class SimulationApp:
             return
         self.root.update_idletasks()
         self.root.update()
-        dt = 1 / 120
+        dt = 1 / 60
 
         try:
             self.aircraft.calc_move(dt)

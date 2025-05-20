@@ -68,8 +68,17 @@ class SimulationPlotter:
         x_min, x_max = min(all_x), max(all_x)
         y_min, y_max = min(all_y), max(all_y)
         
-        self.ax.set_xlim(min(x_min, 0) - margin, max(x_max, 10) + margin)
-        self.ax.set_ylim(min(y_min, 0) - margin, max(y_max, 10) + margin)
+        range_x, range_y = x_max - x_min, y_max - y_min
+        
+        if range_x > range_y:
+            y_min -= (range_x - range_y) / 2
+            y_max += (range_x - range_y) / 2
+        else:
+            x_min -= (range_y - range_x) / 2
+            x_max += (range_y - range_x) / 2
+        
+        self.ax.set_xlim(x_min - margin, x_max + margin)
+        self.ax.set_ylim(y_min - margin, y_max + margin)
         
     def reset_trajectories(self):
         self.aircraft_path = []
