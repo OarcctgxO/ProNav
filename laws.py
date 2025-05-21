@@ -2,11 +2,11 @@ from math import atan2, sqrt, hypot, pi
 import numpy as np
 class law:
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         return [0.0, 0.0]
 class TPN(law):
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         # координаты цели относительно ракеты
         x = target.x - pursuer.x
         y = target.y - pursuer.y
@@ -26,7 +26,7 @@ class TPN(law):
 
 class PP(law):
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         x = target.x - pursuer.x
         y = target.y - pursuer.y
         
@@ -52,7 +52,7 @@ class PP(law):
     
 class APN(TPN):
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         ax, ay = TPN.calc_a(pursuer, target, N)
         x = target.x - pursuer.x
         y = target.y - pursuer.y
@@ -81,7 +81,7 @@ class APN(TPN):
     
 class ZEMPN(law):
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         x = target.x - pursuer.x
         y = target.y - pursuer.y
         vx = target.vx - pursuer.vx
@@ -109,7 +109,7 @@ class ZEMPN(law):
     
 class ZEMAPN(law):
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         x = target.x - pursuer.x
         y = target.y - pursuer.y
         vx = target.vx - pursuer.vx
@@ -134,5 +134,27 @@ class ZEMAPN(law):
         mag_vp_sq = vp_x**2 + vp_y**2 + epsilon
         ax = ax_orig - (dot / mag_vp_sq) * vp_x
         ay = ay_orig - (dot / mag_vp_sq) * vp_y
+        
+        return [ax, ay]
+   
+class ZEMPN_variant(law):
+    @staticmethod
+    def calc_a(target, pursuer, N):
+        k_t = target.vy / target.vx
+        b_t = target.y - k_t * target.x
+        
+        k_p = pursuer.vy / pursuer.vx
+        b_p = pursuer.y - k_p * pursuer.x
+        
+        x_m = (b_p - b_t) / (k_t - k_p)
+        y_m = x_m * k_t + b_t
+        
+        tgo = (x_m - pursuer.x) / pursuer.vx
+        
+        ZEM_x = target.vx * tgo + target.x - x_m
+        ZEM_y = target.vy * tgo + target.y - y_m
+        
+        ax = ZEM_x / tgo**2
+        ay = ZEM_y / tgo**2
         
         return [ax, ay]
