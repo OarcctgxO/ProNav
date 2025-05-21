@@ -2,11 +2,11 @@ from math import atan2, sqrt, hypot, pi
 import numpy as np
 class law:
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         return [0.0, 0.0]
 class TPN(law):
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         # координаты цели относительно ракеты
         x = target.x - pursuer.x
         y = target.y - pursuer.y
@@ -26,7 +26,7 @@ class TPN(law):
 
 class PP(law):
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         x = target.x - pursuer.x
         y = target.y - pursuer.y
         
@@ -52,8 +52,8 @@ class PP(law):
     
 class APN(TPN):
     @staticmethod
-    def calc_a(pursuer, target, N):
-        ax, ay = TPN.calc_a(pursuer, target, N)
+    def calc_a(target, pursuer, N):
+        ax, ay = TPN.calc_a(target, pursuer, N)
         x = target.x - pursuer.x
         y = target.y - pursuer.y
         
@@ -81,7 +81,7 @@ class APN(TPN):
     
 class ZEMPN(law):
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         x = target.x - pursuer.x
         y = target.y - pursuer.y
         vx = target.vx - pursuer.vx
@@ -109,7 +109,7 @@ class ZEMPN(law):
     
 class ZEMAPN(law):
     @staticmethod
-    def calc_a(pursuer, target, N):
+    def calc_a(target, pursuer, N):
         x = target.x - pursuer.x
         y = target.y - pursuer.y
         vx = target.vx - pursuer.vx

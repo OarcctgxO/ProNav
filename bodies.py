@@ -47,5 +47,5 @@ class missile(air_body):
         self.N = N
         
     def calc_move(self, dt):
-        self.ax, self.ay = self.law.calc_a(self, self.target, self.N)
+        self.ax, self.ay = self.law.calc_a(self.target, self, self.N)
         super().calc_move(dt)
