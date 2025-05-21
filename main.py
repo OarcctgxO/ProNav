@@ -111,7 +111,7 @@ class SimulationApp:
         self.missile = missile(
             x=0.0,
             y=0.0,
-            vx=6.0,
+            vx=10.0,
             vy=0.0,
             target=self.aircraft,
             law=getattr(laws, self.guidance_law.get()),

@@ -35,6 +35,9 @@ class SimulationPlotter:
     def update_plot(self, aircraft, missile):
         self.aircraft_path.append([aircraft.x, aircraft.y])
         self.missile_path.append([missile.x, missile.y])
+        if len(self.missile_path) > 1:
+            if [missile.x, missile.y] != self.missile_path[-1]:
+                self.missile_path.append([missile.x, missile.y])
 
         if len(self.aircraft_path) > 1:
             self.aircraft_line.set_data(

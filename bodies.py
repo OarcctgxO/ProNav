@@ -48,4 +48,9 @@ class missile(air_body):
         
     def calc_move(self, dt):
         self.ax, self.ay = self.law.calc_a(self.target, self, self.N)
+        if self.initial_speed > 1e-9:
+            self.initial_speed -= hypot(self.ax, self.ay) * dt * 0.05
+        else:
+            self.initial_speed = 0.
+            return
         super().calc_move(dt)
