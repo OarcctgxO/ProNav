@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from bodies import *
 from plotter import *
+from const import acceleration_pressed
 import laws
 
 class SimulationApp:
@@ -86,13 +87,13 @@ class SimulationApp:
             self.aircraft.ay_result = 0
             
             if ord("A") in self.keys_pressed:
-                self.aircraft.ax = -50
+                self.aircraft.ax = -acceleration_pressed
             if ord("D") in self.keys_pressed:
-                self.aircraft.ax = 50
+                self.aircraft.ax = acceleration_pressed
             if ord("W") in self.keys_pressed:
-                self.aircraft.ay = 50
+                self.aircraft.ay = acceleration_pressed
             if ord("S") in self.keys_pressed:
-                self.aircraft.ay = -50
+                self.aircraft.ay = -acceleration_pressed
 
     def start_simulation(self):
         if self.simulation_running:
@@ -105,7 +106,13 @@ class SimulationApp:
         self.guidance_law.config(state=tk.DISABLED)
         self.plotter.reset_trajectories()
 
-        self.aircraft = air_body(x=20.0, y=20.0, vx=-5., vy=0.0, ax=0.0, ay=0.0)
+        self.aircraft = airplane(
+            x=20.0, 
+            y=20.0, 
+            vx=-5., 
+            vy=0.0, 
+            ax=0.0, 
+            ay=0.0)
 
         self.missile = missile(
             x=0.0,

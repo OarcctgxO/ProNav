@@ -1,36 +1,34 @@
 from math import hypot
-class air_body:
+from const import eps, air_drag
+class airplane:
     def __init__(self, x, y, vx, vy, ax, ay):
-        self.x = x
-        self.y = y
-        self.vx = vx
-        self.vy = vy
-        self.ax = ax
-        self.ay = ay
-        self.initial_speed = hypot(vx, vy)
+        self.x = x  #координата x
+        self.y = y  #координата y
+        self.vx = vx    #проекция скорости на ось x
+        self.vy = vy    #проекция скорости на ось y
+        self.ax = ax    #проекция ускорения на ось x
+        self.ay = ay    #проекция ускорения на ось y
+        self.max_speed = hypot(vx, vy)  #максимальная скорость определяется как начальная
 
-    def calc_move(self, dt):
-        # Сохраняем исходную скорость
-        original_vx = self.vx
-        original_vy = self.vy
-
+    def calc_move(self, dt):    #метод двигает самолет и записывает его положение через dt времени
         # Применяем ускорение к скорости
-        new_vx = original_vx + self.ax * dt
-        new_vy = original_vy + self.ay * dt
+        new_vx = self.vx + self.ax * dt
+        new_vy = self.vy + self.ay * dt
 
-        # Ограничиваем скорость до начального значения
+        # Ограничиваем скорость до максимума
         current_speed = hypot(new_vx, new_vy)
-        if current_speed > self.initial_speed:
-            scale = self.initial_speed / current_speed
+        if current_speed > self.max_speed:
+            scale = self.max_speed / current_speed
             new_vx *= scale
             new_vy *= scale
         
+        #Считаем "реальное" ускорение (для методов с учетом ускорения цели)
         self.ax = (new_vx - self.vx) / dt
         self.ay = (new_vy - self.vy) / dt
 
         # Рассчитываем перемещение как среднюю скорость * dt
-        avg_vx = (original_vx + new_vx) / 2
-        avg_vy = (original_vy + new_vy) / 2
+        avg_vx = (self.vx + new_vx) / 2
+        avg_vy = (self.vy + new_vy) / 2
         self.x += avg_vx * dt
         self.y += avg_vy * dt
 
@@ -38,18 +36,18 @@ class air_body:
         self.vx = new_vx
         self.vy = new_vy
 
-class missile(air_body):
+class missile(airplane):    #ракета почти ничем не отличается от самолета
     def __init__(self, x, y, vx, vy, law, target, N):
         super().__init__(x, y, vx, vy, 0., 0.)
-        self.law = law
-        self.target = target
-        self.N = N
+        self.law = law  #закон наведения на цель
+        self.target = target    #сама цель
+        self.N = N  #коэффициент пропорциональности наведения
         
     def calc_move(self, dt):
-        self.ax, self.ay = self.law.calc_a(self.target, self, self.N)
-        if self.initial_speed > 1e-9:
-            self.initial_speed -= hypot(self.ax, self.ay) * dt * 0.07
+        self.ax, self.ay = self.law.calc_a(self.target, self, self.N)   #считаем ускорение для перехвата цели (по одному из законов)
+        if self.max_speed > eps:
+            self.max_speed -= hypot(self.ax, self.ay) * dt * air_drag   #замедляемся пропорционально боковому усилию поворота (иначе ракета летает бесконечно)
         else:
-            self.initial_speed = 0.
+            self.max_speed = 0.
             return
         super().calc_move(dt)

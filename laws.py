@@ -1,7 +1,5 @@
 from math import atan2, sqrt, hypot, pi
-import numpy as np
-
-eps = 1e-6
+from const import eps
 
 class law:
     @staticmethod
@@ -10,7 +8,6 @@ class law:
 class TPN(law):
     @staticmethod
     def calc_a(target, pursuer, N):
-        # координаты цели относительно ракеты
         x = target.x - pursuer.x
         y = target.y - pursuer.y
         vx = target.vx - pursuer.vx
@@ -105,7 +102,7 @@ class ZEMPN(law):
         ay = ay_orig - (dot / mag_vp_sq) * vp_y
         
         return [ax, ay]
-    
+
 class ZEMAPN(law):
     @staticmethod
     def calc_a(target, pursuer, N):
