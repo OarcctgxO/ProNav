@@ -1,10 +1,9 @@
 import matplotlib
-
 matplotlib.use("TkAgg")
 import tkinter as tk
 from tkinter import ttk
-from bodies import air_body, missile
-from plotter import SimulationPlotter
+from bodies import *
+from plotter import *
 import laws
 
 class SimulationApp:
@@ -106,7 +105,7 @@ class SimulationApp:
         self.guidance_law.config(state=tk.DISABLED)
         self.plotter.reset_trajectories()
 
-        self.aircraft = air_body(x=20.0, y=20.0, vx=-5., vy=0.0, a=0.0, ax=0.0, ay=0.0)
+        self.aircraft = air_body(x=20.0, y=20.0, vx=-5., vy=0.0, ax=0.0, ay=0.0)
 
         self.missile = missile(
             x=0.0,
@@ -145,7 +144,7 @@ class SimulationApp:
         self.stop_simulation()
         
     def check_win(self):
-        if self.aircraft.x ** 2 + self.aircraft.y ** 2 < 1:
+        if self.aircraft.x ** 2 + self.aircraft.y ** 2 < 0.9:
             self.win()
 
     def run_simulation(self):
@@ -166,7 +165,7 @@ class SimulationApp:
                 (self.missile.x - self.aircraft.x) ** 2
                 + (self.missile.y - self.aircraft.y) ** 2
             ) ** 0.5
-            if distance < 0.1:
+            if distance < 0.2:
                 self.plotter.ax.set_title("Цель поражена!", color="red")
                 self.plotter.canvas.draw()
                 self.stop_simulation()

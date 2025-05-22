@@ -1,11 +1,10 @@
 from math import hypot
 class air_body:
-    def __init__(self, x, y, vx, vy, a, ax, ay):
+    def __init__(self, x, y, vx, vy, ax, ay):
         self.x = x
         self.y = y
         self.vx = vx
         self.vy = vy
-        self.a = a
         self.ax = ax
         self.ay = ay
         self.initial_speed = hypot(vx, vy)
@@ -41,7 +40,7 @@ class air_body:
 
 class missile(air_body):
     def __init__(self, x, y, vx, vy, law, target, N):
-        super().__init__(x, y, vx, vy, 0, 0, 0)
+        super().__init__(x, y, vx, vy, 0., 0.)
         self.law = law
         self.target = target
         self.N = N
@@ -49,7 +48,7 @@ class missile(air_body):
     def calc_move(self, dt):
         self.ax, self.ay = self.law.calc_a(self.target, self, self.N)
         if self.initial_speed > 1e-9:
-            self.initial_speed -= hypot(self.ax, self.ay) * dt * 0.05
+            self.initial_speed -= hypot(self.ax, self.ay) * dt * 0.07
         else:
             self.initial_speed = 0.
             return
