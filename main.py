@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from bodies import *
 from plotter import *
-from const import acceleration_pressed
+from const import acceleration_pressed, FPS
 import laws
 
 class SimulationApp:
@@ -107,8 +107,8 @@ class SimulationApp:
         self.plotter.reset_trajectories()
 
         self.aircraft = airplane(
-            x=100.0, 
-            y=100.0, 
+            x=20.0, 
+            y=20.0, 
             vx=-5., 
             vy=0.0, 
             ax=0.0, 
@@ -159,7 +159,7 @@ class SimulationApp:
             return
         self.root.update_idletasks()
         self.root.update()
-        dt = 1 / 60
+        dt = 1 / FPS
 
         try:
             self.update_acceleration()

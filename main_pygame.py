@@ -2,7 +2,7 @@
 import pygame
 from pygame.locals import *
 from bodies import *
-from const import acceleration_pressed
+from const import acceleration_pressed, FPS, sim_second
 import laws
 
 # Инициализация Pygame
@@ -37,7 +37,7 @@ class Simulation:
         
     def reset(self):
         self.aircraft = airplane(
-            x=100.0, y=100.0, vx=-5., vy=0.0, ax=0.0, ay=0.0
+            x=20.0, y=20.0, vx=-5., vy=0.0, ax=0.0, ay=0.0
         )
         self.missile = missile(
             x=0.0, y=0.0, vx=10.0, vy=0.0,
@@ -117,7 +117,7 @@ class Simulation:
             (self.aircraft.x, self.aircraft.y),
             (self.missile.x, self.missile.y)
         ))
-        if len(self.trajectory) > 1000:
+        if len(self.trajectory) > 10000:
             self.trajectory.pop(0)
             
         # Проверка коллизий
@@ -209,7 +209,7 @@ def main():
     sim = Simulation()
     running = True
     while running:
-        dt = clock.tick(120) / 1000.0
+        dt = clock.tick(FPS) / sim_second
         
         for event in pygame.event.get():
             if event.type == QUIT:
