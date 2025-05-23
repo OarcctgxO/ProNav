@@ -107,8 +107,8 @@ class SimulationApp:
         self.plotter.reset_trajectories()
 
         self.aircraft = airplane(
-            x=20.0, 
-            y=20.0, 
+            x=100.0, 
+            y=100.0, 
             vx=-5., 
             vy=0.0, 
             ax=0.0, 

@@ -37,7 +37,7 @@ class Simulation:
         
     def reset(self):
         self.aircraft = airplane(
-            x=20.0, y=20.0, vx=-5., vy=0.0, ax=0.0, ay=0.0
+            x=100.0, y=100.0, vx=-5., vy=0.0, ax=0.0, ay=0.0
         )
         self.missile = missile(
             x=0.0, y=0.0, vx=10.0, vy=0.0,
