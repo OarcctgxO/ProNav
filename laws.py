@@ -5,6 +5,15 @@ class law:
     @staticmethod
     def calc_a(target, pursuer, N):
         return [0.0, 0.0]
+    def norm_a(vx, vy, a):
+        vp = hypot(vx, vy)
+        if vp < eps:
+            return [0.0, 0.0]
+        vp += eps
+        ax = - a * (vy / vp)
+        ay = a * (vx / vp)
+        return [ax, ay]
+        
 class TPN(law):
     @staticmethod
     def calc_a(target, pursuer, N):
@@ -12,15 +21,16 @@ class TPN(law):
         y = target.y - pursuer.y
         vx = target.vx - pursuer.vx
         vy = target.vy - pursuer.vy
+        
         if hypot(x, y) <= eps:
             return[0.0, 0.0]
 
         los_rate = (vy * x - vx * y) / (x**2 + y**2)
-        vp = sqrt(pursuer.vx**2 + pursuer.vy**2) + eps
+        vp = hypot(pursuer.vx, pursuer.vy)
+        
         a = los_rate * vp * N
-        calc_ax = -a * (pursuer.vy / vp)
-        calc_ay = a * (pursuer.vx / vp)
-        return [calc_ax, calc_ay]
+        
+        return TPN.norm_a(pursuer.vx, pursuer.vy, a)
 
 class PP(law):
     @staticmethod
@@ -30,7 +40,7 @@ class PP(law):
         if hypot(x, y) < eps:
             return [0.0, 0.0]
         
-        vp = hypot(pursuer.vx, pursuer.vy) + eps
+        vp = hypot(pursuer.vx, pursuer.vy)
 
         target_angle = atan2(y, x)
         velocity_angle = atan2(pursuer.vy, pursuer.vx)
@@ -38,11 +48,9 @@ class PP(law):
         
         angle_diff = (angle_diff + pi) % (2 * pi) - pi
         
-        a_perp = N * (angle_diff * vp / 1)
-        ax = -a_perp * pursuer.vy / vp
-        ay =  a_perp * pursuer.vx / vp
+        a = N * (angle_diff * vp)
         
-        return [ax, ay]
+        return norm_a(pursuer.vx, pursuer.vy, a)
     
 class APN(TPN):
     @staticmethod
@@ -51,13 +59,13 @@ class APN(TPN):
         x = target.x - pursuer.x
         y = target.y - pursuer.y
         
-        r_squared = x**2 + y**2
+        r = hypot(x, y)
         if r_squared < eps:
             return [ax, ay]
         
         a_dot_r = target.ax * x + target.ay * y
-        ax_add = target.ax - (a_dot_r * x) / r_squared
-        ay_add = target.ay - (a_dot_r * y) / r_squared
+        ax_add = target.ax - (a_dot_r * x) / r**2
+        ay_add = target.ay - (a_dot_r * y) / r**2
         
         vp = hypot(pursuer.vx, pursuer.vy)
         if vp < 1e-6:
