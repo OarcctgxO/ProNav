@@ -1,4 +1,6 @@
 # main_pygame.py
+from os import environ
+environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 from pygame.locals import *
 from bodies import *
@@ -204,7 +206,7 @@ class Simulation:
             screen.blit(surf, (WIDTH//2 - 80, HEIGHT//2))
             
         pygame.display.flip()
-        
+
 def main():
     sim = Simulation()
     running = True
