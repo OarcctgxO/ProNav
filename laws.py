@@ -1,19 +1,21 @@
 from math import atan2, sqrt, hypot, pi
 from const import eps
 
+
+def norm_a(vx, vy, a):
+    vp = hypot(vx, vy)
+    if vp < eps:
+        return [0.0, 0.0]
+    vp += eps
+    ax = -a * (vy / vp)
+    ay = a * (vx / vp)
+    return [ax, ay]
+
 class law:
     @staticmethod
     def calc_a(target, pursuer, N):
         return [0.0, 0.0]
-    def norm_a(vx, vy, a):
-        vp = hypot(vx, vy)
-        if vp < eps:
-            return [0.0, 0.0]
-        vp += eps
-        ax = - a * (vy / vp)
-        ay = a * (vx / vp)
-        return [ax, ay]
-        
+
 class TPN(law):
     @staticmethod
     def calc_a(target, pursuer, N):
@@ -30,7 +32,7 @@ class TPN(law):
         
         a = los_rate * vp * N
         
-        return TPN.norm_a(pursuer.vx, pursuer.vy, a)
+        return norm_a(pursuer.vx, pursuer.vy, a)
 
 class PP(law):
     @staticmethod
@@ -51,7 +53,7 @@ class PP(law):
         a = N * (angle_diff * vp)
         
         return norm_a(pursuer.vx, pursuer.vy, a)
-    
+
 class APN(TPN):
     @staticmethod
     def calc_a(target, pursuer, N):
@@ -60,7 +62,7 @@ class APN(TPN):
         y = target.y - pursuer.y
         
         r = hypot(x, y)
-        if r_squared < eps:
+        if r < eps:
             return [ax, ay]
         
         a_dot_r = target.ax * x + target.ay * y
@@ -80,7 +82,7 @@ class APN(TPN):
         ay += (N / 2) * a_perp * n_y
         
         return [ax, ay]
-    
+
 class ZEMPN(law):
     @staticmethod
     def calc_a(target, pursuer, N):
