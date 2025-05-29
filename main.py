@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from bodies import *
 from plotter import *
-from const import acceleration_pressed, FPS
+from const import acceleration_pressed, FPS, airplane_start, missile_start
 import laws
 
 class SimulationApp:
@@ -85,7 +85,7 @@ class SimulationApp:
             self.aircraft.ay = 0
             self.aircraft.ax_result = 0
             self.aircraft.ay_result = 0
-            
+
             if ord("A") in self.keys_pressed:
                 self.aircraft.ax = -acceleration_pressed
             if ord("D") in self.keys_pressed:
@@ -106,22 +106,9 @@ class SimulationApp:
         self.guidance_law.config(state=tk.DISABLED)
         self.plotter.reset_trajectories()
 
-        self.aircraft = airplane(
-            x=20.0, 
-            y=20.0, 
-            vx=-5., 
-            vy=0.0, 
-            ax=0.0, 
-            ay=0.0)
-
+        self.aircraft = airplane(*airplane_start)
         self.missile = missile(
-            x=0.0,
-            y=0.0,
-            vx=10.0,
-            vy=0.0,
-            target=self.aircraft,
-            law=getattr(laws, self.guidance_law.get()),
-            N = 3
+            *missile_start, target=self.aircraft, law=self.current_law, N=3
         )
 
         self.plot_frame.focus_set()
@@ -144,12 +131,12 @@ class SimulationApp:
             self.simulation_running = True
             self.plot_frame.focus_set()
             self.run_simulation()
-    
+
     def win(self):
         self.plotter.ax.set_title("Победа!", color="Green")
         self.plotter.canvas.draw()
         self.stop_simulation()
-        
+
     def check_win(self):
         if self.aircraft.x ** 2 + self.aircraft.y ** 2 < 0.9:
             self.win()

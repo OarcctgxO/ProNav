@@ -4,7 +4,7 @@ environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 from pygame.locals import *
 from bodies import *
-from const import acceleration_pressed, FPS, sim_second
+from const import acceleration_pressed, FPS, sim_second, airplane_start, missile_start
 import laws
 
 # Инициализация Pygame
@@ -38,11 +38,9 @@ class Simulation:
         self.reset()
         
     def reset(self):
-        self.aircraft = airplane(
-            x=20.0, y=20.0, vx=-5., vy=0.0, ax=0.0, ay=0.0
-        )
+        self.aircraft = airplane(*airplane_start)
         self.missile = missile(
-            x=0.0, y=0.0, vx=10.0, vy=0.0,
+            *missile_start,
             target=self.aircraft, law=self.current_law, N=3
         )
         self.trajectory = []
@@ -59,7 +57,6 @@ class Simulation:
         center_y = self.aircraft.y
         
         # Рассчитываем расстояние до центра
-        distance_to_center = hypot(center_x, center_y)
         distance_x = max(abs(center_x), abs(0))  # Учитываем (0,0)
         distance_y = max(abs(center_y), abs(0))
         

@@ -1,5 +1,6 @@
 from math import atan2, sqrt, hypot, pi
-from const import eps
+from const import eps, K_a
+from numpy import sign
 
 
 def norm_a(vx, vy, a):
@@ -54,7 +55,9 @@ def APN(target, pursuer, N):
     if r < eps:
         return [ax, ay]
 
-    a = N * 0.5 * (- target.ax * x + target.ay * y ) / r
+    K = min(K_a / r, 1)
+
+    a = N * 0.5 * (- target.ax * K * x + target.ay * K * y ) / r
 
     add_a = norm_a(pursuer.vx, pursuer.vy, a)
 
@@ -65,58 +68,54 @@ def ZEMPN(target, pursuer, N):
     y = target.y - pursuer.y
     vx = target.vx - pursuer.vx
     vy = target.vy - pursuer.vy
-    
+
     if hypot(x, y) < eps or hypot(pursuer.vx, pursuer.vy) < eps:
         return [0. , 0.]
-    
+
     numerator = x * vx + y * vy
     denominator = vx**2 + vy**2 + eps
     tgo = -numerator / denominator
-    
+
     ZEMx = x + vx * tgo
     ZEMy = y + vy * tgo
-    
+
     tgo_sq = tgo**2 + eps
+
     ax_orig = (N * ZEMx) / tgo_sq
     ay_orig = (N * ZEMy) / tgo_sq
-    
-    vp_x, vp_y = pursuer.vx, pursuer.vy
-    dot = ax_orig * vp_x + ay_orig * vp_y
-    mag_vp_sq = vp_x**2 + vp_y**2 + eps
-    ax = ax_orig - (dot / mag_vp_sq) * vp_x
-    ay = ay_orig - (dot / mag_vp_sq) * vp_y
-    
-    return [ax, ay]
+    # для направления по перпендикуляру к скорости
+    a = hypot(ax_orig, ay_orig) * sign(pursuer.vx * ay_orig - pursuer.vy * ax_orig)
+
+    return norm_a(pursuer.vx, pursuer.vy, a)
 
 def ZEMAPN(target, pursuer, N):
     x = target.x - pursuer.x
     y = target.y - pursuer.y
     vx = target.vx - pursuer.vx
     vy = target.vy - pursuer.vy
+
+    r = hypot(x, y)
+    K = min(K_a / r, 1)
     ax = target.ax
     ay = target.ay
-    
-    if hypot(x, y) < eps or hypot(pursuer.vx, pursuer.vy) < eps:
+
+    if r < eps or hypot(pursuer.vx, pursuer.vy) < eps:
         return [0. , 0.]
-    
+
     numerator = x * vx + y * vy
     denominator = vx**2 + vy**2 + eps
     tgo = -numerator / denominator
-    
+
     ZEMx = x + vx * tgo
     ZEMy = y + vy * tgo
-    
-    ZEMx += 0.5 * ax * tgo**2
-    ZEMy += 0.5 * ay * tgo**2
-    
+
+    ZEMx += 0.5 * ax * K * tgo**2
+    ZEMy += 0.5 * ay * K * tgo**2
+
     tgo_sq = tgo**2 + eps
     ax_orig = (N * ZEMx) / tgo_sq
     ay_orig = (N * ZEMy) / tgo_sq
-    
-    vp_x, vp_y = pursuer.vx, pursuer.vy
-    dot = ax_orig * vp_x + ay_orig * vp_y
-    mag_vp_sq = vp_x**2 + vp_y**2 + eps
-    ax = ax_orig - (dot / mag_vp_sq) * vp_x
-    ay = ay_orig - (dot / mag_vp_sq) * vp_y
-    
-    return [ax, ay]
+
+    a = hypot(ax_orig, ay_orig) * sign(pursuer.vx * ay_orig - pursuer.vy * ax_orig)
+
+    return norm_a(pursuer.vx, pursuer.vy, a)

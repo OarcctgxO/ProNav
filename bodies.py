@@ -1,13 +1,11 @@
 from math import hypot
 from const import eps, air_drag
 class airplane:
-    def __init__(self, x, y, vx, vy, ax, ay):
+    def __init__(self, x, y, vx, vy):
         self.x = x  #координата x
         self.y = y  #координата y
         self.vx = vx    #проекция скорости на ось x
         self.vy = vy    #проекция скорости на ось y
-        self.ax = ax    #проекция ускорения на ось x
-        self.ay = ay    #проекция ускорения на ось y
         self.max_speed = hypot(vx, vy)  #максимальная скорость определяется как начальная
 
     def calc_move(self, dt):    #метод двигает самолет и записывает его положение через dt времени
@@ -38,7 +36,7 @@ class airplane:
 
 class missile(airplane):    #ракета почти ничем не отличается от самолета
     def __init__(self, x, y, vx, vy, law, target, N):
-        super().__init__(x, y, vx, vy, 0., 0.)
+        super().__init__(x, y, vx, vy)
         self.law = law  #закон наведения на цель
         self.target = target    #сама цель
         self.N = N  #коэффициент пропорциональности наведения
