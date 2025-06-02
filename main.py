@@ -67,7 +67,7 @@ class Simulation:
             800 / (2 * distance_x + 20),
             800 / (2 * distance_y + 20)
         )
-        
+        self.scale = 800 / 60
         # Смещение для центрирования
         self.offset_x = 400 - center_x * self.scale
         self.offset_y = 400 - center_y * self.scale
