@@ -26,7 +26,7 @@ def TPN(target, pursuer, N):
     
     a = los_rate * vp * N
     
-    return norm_a(pursuer.vx, pursuer.vy, a)
+    return a
 
 def PP(target, pursuer, N):
     x = target.x - pursuer.x
@@ -44,10 +44,10 @@ def PP(target, pursuer, N):
     
     a = N * (angle_diff * vp)
     
-    return norm_a(pursuer.vx, pursuer.vy, a)
+    return a
 
 def APN(target, pursuer, N):
-    ax, ay = TPN(target, pursuer, N)
+    a = TPN(target, pursuer, N)
     x = target.x - pursuer.x
     y = target.y - pursuer.y
 
@@ -57,11 +57,9 @@ def APN(target, pursuer, N):
 
     K = min(K_a / r, 1)
 
-    a = N * 0.5 * (- target.ax * K * x + target.ay * K * y ) / r
+    a += N * 0.5 * (- target.ax * K * x + target.ay * K * y ) / r
 
-    add_a = norm_a(pursuer.vx, pursuer.vy, a)
-
-    return [ax + add_a[0], ay + add_a[1]]
+    return a
 
 def ZEMPN(target, pursuer, N):
     x = target.x - pursuer.x
@@ -86,7 +84,7 @@ def ZEMPN(target, pursuer, N):
     # для направления по перпендикуляру к скорости
     a = hypot(ax_orig, ay_orig) * sign(pursuer.vx * ay_orig - pursuer.vy * ax_orig)
 
-    return norm_a(pursuer.vx, pursuer.vy, a)
+    return a
 
 def ZEMAPN(target, pursuer, N):
     x = target.x - pursuer.x
@@ -118,4 +116,4 @@ def ZEMAPN(target, pursuer, N):
 
     a = hypot(ax_orig, ay_orig) * sign(pursuer.vx * ay_orig - pursuer.vy * ax_orig)
 
-    return norm_a(pursuer.vx, pursuer.vy, a)
+    return a

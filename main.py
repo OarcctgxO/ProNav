@@ -1,4 +1,3 @@
-# main_pygame.py
 from os import environ
 environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
@@ -6,7 +5,7 @@ from pygame.locals import *
 import math
 import sys
 from bodies import *
-from const import acceleration_pressed, FPS, sim_second, airplane_start, missile_start
+from const import acceleration_pressed, FPS, sim_second, airplane_start, missile_start, eps
 import laws
 
 # Инициализация Pygame
@@ -49,45 +48,46 @@ class Simulation:
         self.keys_pressed = set()
         self.game_over = False
         self.win = False
-        self.scale = 20  # Начальный масштаб
-        self.offset_x = 0
-        self.offset_y = 0
+        self.scale = 20  # Фиксированный масштаб
         
-    def calculate_viewport(self):
-        # Центрируем на самолете
-        center_x = self.aircraft.x
-        center_y = self.aircraft.y
-        
-        # Рассчитываем расстояние до центра
-        distance_x = max(abs(center_x), abs(0))  # Учитываем (0,0)
-        distance_y = max(abs(center_y), abs(0))
-        
-        # Определяем масштаб
-        self.scale = min(
-            800 / (2 * distance_x + 20),
-            800 / (2 * distance_y + 20)
-        )
-        self.scale = 800 / 60
-        # Смещение для центрирования
-        self.offset_x = 400 - center_x * self.scale
-        self.offset_y = 400 - center_y * self.scale
-
     def world_to_screen(self, pos):
-        x = pos[0] * self.scale + self.offset_x
-        y = 800 - (pos[1] * self.scale + self.offset_y)
-        return (int(x), int(y))
+        # Смещение относительно самолета
+        dx = pos[0] - self.aircraft.x
+        dy = pos[1] - self.aircraft.y
+        
+        # Вычисляем угол поворота
+        vx, vy = self.aircraft.vx, self.aircraft.vy
+        speed = math.hypot(vx, vy)
+        if speed < eps:
+            dx_rot = dx
+            dy_rot = dy
+        else:
+            beta = math.atan2(vy, vx)
+            alpha = math.pi/2 - beta
+            dx_rot = dx * math.cos(alpha) - dy * math.sin(alpha)
+            dy_rot = dx * math.sin(alpha) + dy * math.cos(alpha)
+        
+        # Применяем масштаб
+        sx = dx_rot * self.scale
+        sy = dy_rot * self.scale
+        
+        # Центрируем самолет и переворачиваем Y-ось
+        screen_x = 400 + sx
+        screen_y = 400 - sy
+        
+        return (int(screen_x), int(screen_y))
         
     def handle_input(self, event):
         if event.type == KEYDOWN:
             if event.key in self.laws:
                 self.current_law = self.laws[event.key]
                 self.reset()
-                self.running = not self.running
+                self.running = False
             if event.key == K_SPACE:
                 self.running = not self.running
             if event.key == K_r:
                 self.reset()
-                self.running = not self.running
+                self.running = False
             self.keys_pressed.add(event.key)
             
         elif event.type == KEYUP:
@@ -95,17 +95,14 @@ class Simulation:
                 self.keys_pressed.remove(event.key)
                 
     def update_acceleration(self):
+        self.aircraft.a = 0
         self.aircraft.ax = 0
         self.aircraft.ay = 0
         
         if K_a in self.keys_pressed:
-            self.aircraft.ax = -acceleration_pressed
+            self.aircraft.a = acceleration_pressed
         if K_d in self.keys_pressed:
-            self.aircraft.ax = acceleration_pressed
-        if K_w in self.keys_pressed:
-            self.aircraft.ay = acceleration_pressed
-        if K_s in self.keys_pressed:
-            self.aircraft.ay = -acceleration_pressed
+            self.aircraft.a = -acceleration_pressed
             
     def update(self, dt):
         if not self.running or self.paused or self.game_over:
@@ -188,7 +185,6 @@ class Simulation:
             
     def draw(self):
         screen.fill(BLACK)
-        self.calculate_viewport()
         
         # Отрисовка зоны победы
         center = self.world_to_screen((0, 0))
@@ -197,31 +193,31 @@ class Simulation:
         
         # Отрисовка сетки
         grid_size = 5  # Размер ячейки сетки в мировых координатах
-        margin = 2     # Дополнительный запас за пределами видимой области
+        grid_range = 40  # Диапазон отрисовки сетки
         
-        # Получаем границы видимой области в мировых координатах
-        screen_left = (-self.offset_x) / self.scale
-        screen_right = (WIDTH - self.offset_x) / self.scale
-        screen_top = (HEIGHT - self.offset_y) / self.scale
-        screen_bottom = (-self.offset_y) / self.scale
-
+        # Рассчитываем положение самолета в сетке
+        grid_center_x = math.floor(self.aircraft.x / grid_size) * grid_size
+        grid_center_y = math.floor(self.aircraft.y / grid_size) * grid_size
+        
         # Рассчитываем начальные и конечные точки для сетки
-        start_x = int(screen_left // grid_size) * grid_size - margin
-        end_x = int(screen_right // grid_size) * grid_size + margin
-        start_y = int(screen_bottom // grid_size) * grid_size - margin
-        end_y = int(screen_top // grid_size) * grid_size + margin
+        start_x = grid_center_x - grid_range
+        end_x = grid_center_x + grid_range
+        start_y = grid_center_y - grid_range
+        end_y = grid_center_y + grid_range
 
         # Вертикальные линии
         for x in range(start_x, end_x + grid_size, grid_size):
-            start = self.world_to_screen((x, start_y))
-            end = self.world_to_screen((x, end_y))
-            pygame.draw.line(screen, (40, 40, 40), start, end, 1)
+            for y in range(start_y, end_y + grid_size, grid_size):
+                start = self.world_to_screen((x, start_y))
+                end = self.world_to_screen((x, end_y))
+                pygame.draw.line(screen, (40, 40, 40), start, end, 1)
 
         # Горизонтальные линии
         for y in range(start_y, end_y + grid_size, grid_size):
-            start = self.world_to_screen((start_x, y))
-            end = self.world_to_screen((end_x, y))
-            pygame.draw.line(screen, (40, 40, 40), start, end, 1)
+            for x in range(start_x, end_x + grid_size, grid_size):
+                start = self.world_to_screen((start_x, y))
+                end = self.world_to_screen((end_x, y))
+                pygame.draw.line(screen, (40, 40, 40), start, end, 1)
             
         # Отрисовка траекторий
         for a_pos, m_pos in self.trajectory:
@@ -229,9 +225,6 @@ class Simulation:
             m_screen = self.world_to_screen(m_pos)
             pygame.draw.circle(screen, BLUE, a_screen, 1)
             pygame.draw.circle(screen, RED, m_screen, 1)
-        
-        #self.draw_direction_arrow(screen, GREEN, self.world_to_screen((0, 0))) #Стрелка к нулю
-        #self.draw_direction_arrow(screen, RED, self.world_to_screen((self.missile.x, self.missile.y))) #Стрелка к ракете
             
         # Отрисовка объектов
         a_pos = self.world_to_screen((self.aircraft.x, self.aircraft.y))
