@@ -3,6 +3,8 @@ from os import environ
 environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 from pygame.locals import *
+import math
+import sys
 from bodies import *
 from const import acceleration_pressed, FPS, sim_second, airplane_start, missile_start
 import laws
@@ -62,7 +64,7 @@ class Simulation:
         
         # Определяем масштаб
         self.scale = min(
-            800 / (2 * distance_x + 20),  # +20 пикселей отступ
+            800 / (2 * distance_x + 20),
             800 / (2 * distance_y + 20)
         )
         
@@ -131,6 +133,56 @@ class Simulation:
         if hypot(self.aircraft.x, self.aircraft.y) < 1.0:
             self.win = True
             self.game_over = True
+    
+    def draw_direction_arrow(self, surface, color, target_pos, arrow_length=20, arrow_head_size=5, line_width=2):
+        # Получаем размеры экрана
+        screen_width, screen_height = WIDTH, HEIGHT
+        
+        # Центр экрана
+        center_x, center_y = screen_width // 2, screen_height // 2
+        center_pos = (center_x, center_y)
+        
+        # Координаты цели
+        target_x, target_y = target_pos
+        
+        # Вектор направления
+        dir_x = target_x - center_x
+        dir_y = target_y - center_y
+        
+        # Нормализуем вектор (приводим к длине 1)
+        distance = math.hypot(dir_x, dir_y)
+        if distance > 0:
+            norm_x = dir_x / distance
+            norm_y = dir_y / distance
+        else:
+            norm_x, norm_y = 0, 0  # Если цель в центре - не рисуем стрелку
+        
+        # Конечная точка стрелки
+        end_x = center_x + norm_x * arrow_length
+        end_y = center_y + norm_y * arrow_length
+        end_pos = (end_x, end_y)
+        
+        # Рисуем линию стрелки
+        pygame.draw.line(surface, color, center_pos, end_pos, line_width)
+        
+        # Если стрелка достаточно длинная, рисуем наконечник
+        if distance > 0:
+            # Угол наклона стрелки
+            angle = math.atan2(dir_y, dir_x)
+            
+            # Точки для треугольника наконечника
+            arrow_points = [
+                end_pos,
+                (
+                    end_x - arrow_head_size * math.cos(angle - math.pi/6),
+                    end_y - arrow_head_size * math.sin(angle - math.pi/6)
+                ),
+                (
+                    end_x - arrow_head_size * math.cos(angle + math.pi/6),
+                    end_y - arrow_head_size * math.sin(angle + math.pi/6)
+                )
+            ]
+            pygame.draw.polygon(surface, color, arrow_points)
             
     def draw(self):
         screen.fill(BLACK)
@@ -175,6 +227,9 @@ class Simulation:
             m_screen = self.world_to_screen(m_pos)
             pygame.draw.circle(screen, BLUE, a_screen, 1)
             pygame.draw.circle(screen, RED, m_screen, 1)
+        
+        #self.draw_direction_arrow(screen, GREEN, self.world_to_screen((0, 0))) #Стрелка к нулю
+        #self.draw_direction_arrow(screen, RED, self.world_to_screen((self.missile.x, self.missile.y))) #Стрелка к ракете
             
         # Отрисовка объектов
         a_pos = self.world_to_screen((self.aircraft.x, self.aircraft.y))
