@@ -10,7 +10,7 @@ import laws
 
 # Инициализация Pygame
 pygame.init()
-WIDTH, HEIGHT = 1000, 1000
+WIDTH, HEIGHT = 1600, 900
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Ракетная симуляция")
 clock = pygame.time.Clock()
@@ -117,7 +117,7 @@ class Simulation:
             (self.aircraft.x, self.aircraft.y),
             (self.missile.x, self.missile.y)
         ))
-        if len(self.trajectory) > 10000:
+        if len(self.trajectory) > 5000:
             self.trajectory.pop(0)
             
         # Проверка коллизий
@@ -241,13 +241,22 @@ class Simulation:
             "[1-5] - выбор закона",
             "[SPACE] - старт/пауза",
             "[R] - сброс",
-            "[WASD] - управление самолетом"
+            "[AD] - управление самолетом"
         ]
         y = 10
         for text in texts:
             surf = font.render(text, True, WHITE)
             screen.blit(surf, (10, y))
             y += 30
+        
+        txt_dist_win = f"Расстояние до цели: {int(math.hypot(self.aircraft.x, self.aircraft.y))}"
+        txt_dist_mis = f"Расстояние до ракеты: {int(math.hypot(self.aircraft.x - self.missile.x, self.aircraft.y - self.missile.y))}"
+        y = 10
+        surf = font.render(txt_dist_win, True, GREEN)
+        screen.blit(surf, (WIDTH - surf.get_width() - 10, y))
+        y += 20
+        surf = font.render(txt_dist_mis, True, RED)
+        screen.blit(surf, (WIDTH - surf.get_width() - 10, y))
             
         if self.game_over:
             text = "Цель поражена!" if not self.win else "Победа!"
