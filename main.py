@@ -1,184 +1,224 @@
-import matplotlib
-matplotlib.use("TkAgg")
-import tkinter as tk
-from tkinter import ttk
+# main_pygame.py
+from os import environ
+environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+import pygame
+from pygame.locals import *
 from bodies import *
-from plotter import *
-from const import acceleration_pressed, FPS, airplane_start, missile_start
+from const import acceleration_pressed, FPS, sim_second, airplane_start, missile_start
 import laws
 
-class SimulationApp:
-    def __init__(self, root):
-        self.root = root
-        self.simulation_running = False
-        self.plotter = None
-        self.keys_pressed = {}
-        self.after_ids = []
-        self.setup_ui()
-        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
-        self.setup_key_bindings()
+# Инициализация Pygame
+pygame.init()
+WIDTH, HEIGHT = 800, 800
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Ракетная симуляция")
+clock = pygame.time.Clock()
+font = pygame.font.Font(None, 24)
 
-    def on_close(self):
-        self.stop_simulation()
-        self.root.destroy()
-        matplotlib.pyplot.close("all")
+# Цвета
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+GREEN = (0, 255, 0)
+YELLOW = (255, 255, 0)
 
-    def setup_ui(self):
-        self.root.title("Симуляция наведения ракеты")
-
-        control_frame = ttk.Frame(self.root, padding="10")
-        control_frame.pack(side=tk.LEFT, fill=tk.Y)
-
-        ttk.Label(control_frame, text="Закон наведения:").pack()
-        self.guidance_law = ttk.Combobox(
-            control_frame, values=["PP", "TPN", "APN", 'ZEMPN', 'ZEMAPN'], state="readonly"
-        )
-        self.guidance_law.set("PP")
-        self.guidance_law.pack(pady=5)
-
-        self.start_button = ttk.Button(
-            control_frame, text="Старт", command=self.start_simulation
-        )
-        self.start_button.pack(pady=10)
-
-        self.pause_button = ttk.Button(
-            control_frame,
-            text="Пауза",
-            state=tk.DISABLED,
-            command=self.pause_simulation,
-        )
-        self.pause_button.pack()
-
-        self.stop_button = ttk.Button(
-            control_frame, text="Стоп", state=tk.DISABLED, command=self.stop_simulation
-        )
-        self.stop_button.pack()
-
-        self.plot_frame = ttk.Frame(self.root)
-        self.plot_frame.pack(side=tk.RIGHT, expand=True, fill=tk.BOTH)
-
-        self.plot_frame.configure(takefocus=True)
-        self.plot_frame.focus_set()
-        self.plot_frame.bind("<Button-1>", lambda e: self.plot_frame.focus_force())
-
-        self.plotter = SimulationPlotter(self.plot_frame)
-
-    def setup_key_bindings(self):
-        self.plot_frame.bind("<KeyPress>", self.on_key_press)
-        self.plot_frame.bind("<KeyRelease>", self.on_key_release)
-        self.plot_frame.focus_set()
-
-    def on_key_press(self, event):
-        key = event.keycode
-        self.keys_pressed[key] = True
-        self.update_acceleration()
-
-    def on_key_release(self, event):
-        key = event.keycode
-        if key in self.keys_pressed:
-            del self.keys_pressed[key]
-        self.update_acceleration()
-
-    def update_acceleration(self):
-        if hasattr(self, "aircraft"):
-            self.aircraft.ax = 0
-            self.aircraft.ay = 0
-            self.aircraft.ax_result = 0
-            self.aircraft.ay_result = 0
-
-            if ord("A") in self.keys_pressed:
-                self.aircraft.ax = -acceleration_pressed
-            if ord("D") in self.keys_pressed:
-                self.aircraft.ax = acceleration_pressed
-            if ord("W") in self.keys_pressed:
-                self.aircraft.ay = acceleration_pressed
-            if ord("S") in self.keys_pressed:
-                self.aircraft.ay = -acceleration_pressed
-
-    def start_simulation(self):
-        if self.simulation_running:
-            return
-        self.plotter.ax.set_title("Симуляция наведения", color="black")
-        self.simulation_running = True
-        self.start_button.config(state=tk.DISABLED)
-        self.stop_button.config(state=tk.NORMAL)
-        self.pause_button.config(state=tk.NORMAL)
-        self.guidance_law.config(state=tk.DISABLED)
-        self.plotter.reset_trajectories()
-
+class Simulation:
+    def __init__(self):
+        self.running = False
+        self.paused = False
+        self.laws = {
+            K_1: laws.PP,
+            K_2: laws.TPN,
+            K_3: laws.APN,
+            K_4: laws.ZEMPN,
+            K_5: laws.ZEMAPN
+        }
+        self.current_law = laws.PP
+        self.reset()
+        
+    def reset(self):
         self.aircraft = airplane(*airplane_start)
         self.missile = missile(
-            *missile_start, target=self.aircraft, law=self.current_law, N=3
+            *missile_start,
+            target=self.aircraft, law=self.current_law, N=3
         )
+        self.trajectory = []
+        self.keys_pressed = set()
+        self.game_over = False
+        self.win = False
+        self.scale = 20  # Начальный масштаб
+        self.offset_x = 0
+        self.offset_y = 0
+        
+    def calculate_viewport(self):
+        # Центрируем на самолете
+        center_x = self.aircraft.x
+        center_y = self.aircraft.y
+        
+        # Рассчитываем расстояние до центра
+        distance_x = max(abs(center_x), abs(0))  # Учитываем (0,0)
+        distance_y = max(abs(center_y), abs(0))
+        
+        # Определяем масштаб
+        self.scale = min(
+            800 / (2 * distance_x + 20),  # +20 пикселей отступ
+            800 / (2 * distance_y + 20)
+        )
+        
+        # Смещение для центрирования
+        self.offset_x = 400 - center_x * self.scale
+        self.offset_y = 400 - center_y * self.scale
 
-        self.plot_frame.focus_set()
-        self.run_simulation()
-
-    def stop_simulation(self):
-        self.simulation_running = False
-        for after_id in self.after_ids:
-            self.root.after_cancel(after_id)
-        self.after_ids.clear()
-        self.start_button.config(state=tk.NORMAL)
-        self.stop_button.config(state=tk.DISABLED)
-        self.pause_button.config(state=tk.DISABLED)
-        self.guidance_law.config(state=tk.NORMAL)
-
-    def pause_simulation(self):
-        if self.simulation_running:
-            self.simulation_running = False
-        else:
-            self.simulation_running = True
-            self.plot_frame.focus_set()
-            self.run_simulation()
-
-    def win(self):
-        self.plotter.ax.set_title("Победа!", color="Green")
-        self.plotter.canvas.draw()
-        self.stop_simulation()
-
-    def check_win(self):
-        if self.aircraft.x ** 2 + self.aircraft.y ** 2 < 0.9:
-            self.win()
-
-    def run_simulation(self):
-        if not self.simulation_running:
+    def world_to_screen(self, pos):
+        x = pos[0] * self.scale + self.offset_x
+        y = 800 - (pos[1] * self.scale + self.offset_y)
+        return (int(x), int(y))
+        
+    def handle_input(self, event):
+        if event.type == KEYDOWN:
+            if event.key in self.laws:
+                self.current_law = self.laws[event.key]
+                self.reset()
+            if event.key == K_SPACE:
+                self.running = not self.running
+            if event.key == K_r:
+                self.reset()
+            self.keys_pressed.add(event.key)
+            
+        elif event.type == KEYUP:
+            if event.key in self.keys_pressed:
+                self.keys_pressed.remove(event.key)
+                
+    def update_acceleration(self):
+        self.aircraft.ax = 0
+        self.aircraft.ay = 0
+        
+        if K_a in self.keys_pressed:
+            self.aircraft.ax = -acceleration_pressed
+        if K_d in self.keys_pressed:
+            self.aircraft.ax = acceleration_pressed
+        if K_w in self.keys_pressed:
+            self.aircraft.ay = acceleration_pressed
+        if K_s in self.keys_pressed:
+            self.aircraft.ay = -acceleration_pressed
+            
+    def update(self, dt):
+        if not self.running or self.paused or self.game_over:
             return
-        self.root.update_idletasks()
-        self.root.update()
-        dt = 1 / FPS
+            
+        self.update_acceleration()
+        self.aircraft.calc_move(dt)
+        self.missile.calc_move(dt)
+        
+        # Сохраняем траекторию
+        self.trajectory.append((
+            (self.aircraft.x, self.aircraft.y),
+            (self.missile.x, self.missile.y)
+        ))
+        if len(self.trajectory) > 10000:
+            self.trajectory.pop(0)
+            
+        # Проверка коллизий
+        distance = hypot(
+            self.missile.x - self.aircraft.x,
+            self.missile.y - self.aircraft.y
+        )
+        if distance < 0.2:
+            self.game_over = True
+            
+        # Проверка победы
+        if hypot(self.aircraft.x, self.aircraft.y) < 1.0:
+            self.win = True
+            self.game_over = True
+            
+    def draw(self):
+        screen.fill(BLACK)
+        self.calculate_viewport()
+        
+        # Отрисовка зоны победы
+        center = self.world_to_screen((0, 0))
+        radius = int(1 * self.scale)
+        pygame.draw.circle(screen, GREEN, center, radius, 2)
+        
+        # Отрисовка сетки
+        grid_size = 5  # Размер ячейки сетки в мировых координатах
+        margin = 2     # Дополнительный запас за пределами видимой области
+        
+        # Получаем границы видимой области в мировых координатах
+        screen_left = (-self.offset_x) / self.scale
+        screen_right = (WIDTH - self.offset_x) / self.scale
+        screen_top = (HEIGHT - self.offset_y) / self.scale
+        screen_bottom = (-self.offset_y) / self.scale
 
-        try:
-            self.update_acceleration()
-            self.aircraft.calc_move(dt)
-            self.missile.calc_move(dt)
+        # Рассчитываем начальные и конечные точки для сетки
+        start_x = int(screen_left // grid_size) * grid_size - margin
+        end_x = int(screen_right // grid_size) * grid_size + margin
+        start_y = int(screen_bottom // grid_size) * grid_size - margin
+        end_y = int(screen_top // grid_size) * grid_size + margin
 
-            self.plotter.update_plot(self.aircraft, self.missile)
+        # Вертикальные линии
+        for x in range(start_x, end_x + grid_size, grid_size):
+            start = self.world_to_screen((x, start_y))
+            end = self.world_to_screen((x, end_y))
+            pygame.draw.line(screen, (40, 40, 40), start, end, 1)
 
-            distance = (
-                (self.missile.x - self.aircraft.x) ** 2
-                + (self.missile.y - self.aircraft.y) ** 2
-            ) ** 0.5
-            if distance < 0.2:
-                self.plotter.ax.set_title("Цель поражена!", color="red")
-                self.plotter.canvas.draw()
-                self.stop_simulation()
-                return
-
-            new_id = self.root.after(int(dt * 1000), self.run_simulation)
-            self.after_ids = [new_id]
-            self.check_win()
-
-        except Exception as e:
-            print(f"Ошибка: {e}")
-            self.stop_simulation()
-
+        # Горизонтальные линии
+        for y in range(start_y, end_y + grid_size, grid_size):
+            start = self.world_to_screen((start_x, y))
+            end = self.world_to_screen((end_x, y))
+            pygame.draw.line(screen, (40, 40, 40), start, end, 1)
+            
+        # Отрисовка траекторий
+        for a_pos, m_pos in self.trajectory:
+            a_screen = self.world_to_screen(a_pos)
+            m_screen = self.world_to_screen(m_pos)
+            pygame.draw.circle(screen, BLUE, a_screen, 1)
+            pygame.draw.circle(screen, RED, m_screen, 1)
+            
+        # Отрисовка объектов
+        a_pos = self.world_to_screen((self.aircraft.x, self.aircraft.y))
+        m_pos = self.world_to_screen((self.missile.x, self.missile.y))
+        pygame.draw.circle(screen, BLUE, a_pos, 8)
+        pygame.draw.circle(screen, RED, m_pos, 6)
+        
+        # Отрисовка текста
+        texts = [
+            f"Закон наведения: {self.current_law.__name__}",
+            "[1-5] - выбор закона",
+            "[SPACE] - старт/пауза",
+            "[R] - сброс",
+            "[WASD] - управление самолетом"
+        ]
+        y = 10
+        for text in texts:
+            surf = font.render(text, True, WHITE)
+            screen.blit(surf, (10, y))
+            y += 30
+            
+        if self.game_over:
+            text = "Цель поражена!" if not self.win else "Победа!"
+            color = RED if not self.win else GREEN
+            surf = font.render(text, True, color)
+            screen.blit(surf, (WIDTH//2 - 80, HEIGHT//2))
+            
+        pygame.display.flip()
 
 def main():
-    root = tk.Tk()
-    app = SimulationApp(root)
-    root.mainloop()
-
+    sim = Simulation()
+    running = True
+    while running:
+        dt = clock.tick(FPS) / sim_second
+        
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                running = False
+            sim.handle_input(event)
+            
+        sim.update(dt)
+        sim.draw()
+        
+    pygame.quit()
 
 if __name__ == "__main__":
     main()
