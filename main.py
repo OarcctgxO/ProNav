@@ -82,10 +82,12 @@ class Simulation:
             if event.key in self.laws:
                 self.current_law = self.laws[event.key]
                 self.reset()
+                self.running = not self.running
             if event.key == K_SPACE:
                 self.running = not self.running
             if event.key == K_r:
                 self.reset()
+                self.running = not self.running
             self.keys_pressed.add(event.key)
             
         elif event.type == KEYUP:
