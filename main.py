@@ -39,10 +39,10 @@ class Simulation:
         self.reset()
         
     def reset(self):
-        self.aircraft = airplane(*airplane_start)
+        self.airplane = airplane(*airplane_start)
         self.missile = missile(
             *missile_start,
-            target=self.aircraft, law=self.current_law, N=3
+            target=self.airplane, law=self.current_law, N=3
         )
         self.trajectory = []
         self.keys_pressed = set()
@@ -52,11 +52,11 @@ class Simulation:
         
     def world_to_screen(self, pos):
         # Смещение относительно самолета
-        dx = pos[0] - self.aircraft.x
-        dy = pos[1] - self.aircraft.y
+        dx = pos[0] - self.airplane.x
+        dy = pos[1] - self.airplane.y
         
         # Вычисляем угол поворота
-        vx, vy = self.aircraft.vx, self.aircraft.vy
+        vx, vy = self.airplane.vx, self.airplane.vy
         speed = math.hypot(vx, vy)
         if speed < eps:
             dx_rot = dx
@@ -95,26 +95,26 @@ class Simulation:
                 self.keys_pressed.remove(event.key)
                 
     def update_acceleration(self):
-        self.aircraft.a = 0
-        self.aircraft.ax = 0
-        self.aircraft.ay = 0
+        self.airplane.a = 0
+        self.airplane.ax = 0
+        self.airplane.ay = 0
         
         if K_a in self.keys_pressed:
-            self.aircraft.a = acceleration_pressed
+            self.airplane.a = acceleration_pressed
         if K_d in self.keys_pressed:
-            self.aircraft.a = -acceleration_pressed
+            self.airplane.a = -acceleration_pressed
             
     def update(self, dt):
         if not self.running or self.paused or self.game_over:
             return
             
         self.update_acceleration()
-        self.aircraft.calc_move(dt)
+        self.airplane.calc_move(dt)
         self.missile.calc_move(dt)
         
         # Сохраняем траекторию
         self.trajectory.append((
-            (self.aircraft.x, self.aircraft.y),
+            (self.airplane.x, self.airplane.y),
             (self.missile.x, self.missile.y)
         ))
         if len(self.trajectory) > 5000:
@@ -122,14 +122,14 @@ class Simulation:
             
         # Проверка коллизий
         distance = hypot(
-            self.missile.x - self.aircraft.x,
-            self.missile.y - self.aircraft.y
+            self.missile.x - self.airplane.x,
+            self.missile.y - self.airplane.y
         )
         if distance < 0.2:
             self.game_over = True
             
         # Проверка победы
-        if hypot(self.aircraft.x, self.aircraft.y) < 1.0:
+        if hypot(self.airplane.x, self.airplane.y) < 1.0:
             self.win = True
             self.game_over = True
     
@@ -196,8 +196,8 @@ class Simulation:
         grid_range = 40  # Диапазон отрисовки сетки
         
         # Рассчитываем положение самолета в сетке
-        grid_center_x = math.floor(self.aircraft.x / grid_size) * grid_size
-        grid_center_y = math.floor(self.aircraft.y / grid_size) * grid_size
+        grid_center_x = math.floor(self.airplane.x / grid_size) * grid_size
+        grid_center_y = math.floor(self.airplane.y / grid_size) * grid_size
         
         # Рассчитываем начальные и конечные точки для сетки
         start_x = grid_center_x - grid_range
@@ -230,7 +230,7 @@ class Simulation:
         self.draw_direction_arrow(screen, RED, self.world_to_screen((self.missile.x, self.missile.y)))
             
         # Отрисовка объектов
-        a_pos = self.world_to_screen((self.aircraft.x, self.aircraft.y))
+        a_pos = self.world_to_screen((self.airplane.x, self.airplane.y))
         m_pos = self.world_to_screen((self.missile.x, self.missile.y))
         pygame.draw.circle(screen, BLUE, a_pos, 8)
         pygame.draw.circle(screen, RED, m_pos, 6)
@@ -249,8 +249,8 @@ class Simulation:
             screen.blit(surf, (10, y))
             y += 30
         
-        txt_dist_win = f"Расстояние до цели: {int(math.hypot(self.aircraft.x, self.aircraft.y))}"
-        txt_dist_mis = f"Расстояние до ракеты: {int(math.hypot(self.aircraft.x - self.missile.x, self.aircraft.y - self.missile.y))}"
+        txt_dist_win = f"Расстояние до цели: {int(math.hypot(self.airplane.x, self.airplane.y))}"
+        txt_dist_mis = f"Расстояние до ракеты: {int(math.hypot(self.airplane.x - self.missile.x, self.airplane.y - self.missile.y))}"
         y = 10
         surf = font.render(txt_dist_win, True, GREEN)
         screen.blit(surf, (WIDTH - surf.get_width() - 10, y))
