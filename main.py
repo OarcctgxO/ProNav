@@ -10,7 +10,7 @@ import laws
 
 # Инициализация Pygame
 pygame.init()
-WIDTH, HEIGHT = 800, 800
+WIDTH, HEIGHT = 1000, 1000
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Ракетная симуляция")
 clock = pygame.time.Clock()
@@ -72,8 +72,8 @@ class Simulation:
         sy = dy_rot * self.scale
         
         # Центрируем самолет и переворачиваем Y-ось
-        screen_x = 400 + sx
-        screen_y = 400 - sy
+        screen_x = WIDTH // 2 + sx
+        screen_y = HEIGHT // 2 - sy
         
         return (int(screen_x), int(screen_y))
         
@@ -225,6 +225,9 @@ class Simulation:
             m_screen = self.world_to_screen(m_pos)
             pygame.draw.circle(screen, BLUE, a_screen, 1)
             pygame.draw.circle(screen, RED, m_screen, 1)
+            
+        self.draw_direction_arrow(screen, GREEN, self.world_to_screen((0, 0)))
+        self.draw_direction_arrow(screen, RED, self.world_to_screen((self.missile.x, self.missile.y)))
             
         # Отрисовка объектов
         a_pos = self.world_to_screen((self.aircraft.x, self.aircraft.y))
