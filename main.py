@@ -192,7 +192,7 @@ class Simulation:
         pygame.draw.circle(screen, GREEN, center, radius, 2)
         
         # Отрисовка сетки
-        grid_size = 5  # Размер ячейки сетки в мировых координатах
+        grid_size = 10  # Размер ячейки сетки в мировых координатах
         grid_range = 100  # Диапазон отрисовки сетки
         
         # Рассчитываем положение самолета в сетке
@@ -220,11 +220,14 @@ class Simulation:
                 pygame.draw.line(screen, (40, 40, 40), start, end, 1)
             
         # Отрисовка траекторий
-        for a_pos, m_pos in self.trajectory:
-            a_screen = self.world_to_screen(a_pos)
-            m_screen = self.world_to_screen(m_pos)
-            pygame.draw.circle(screen, BLUE, a_screen, 1)
-            pygame.draw.circle(screen, RED, m_screen, 1)
+        if len(self.trajectory) > 1:
+            # Подготовка точек для самолета (синие)
+            air_points = [self.world_to_screen(a_pos) for a_pos, _ in self.trajectory]
+            pygame.draw.lines(screen, BLUE, False, air_points, 1)
+            
+            # Подготовка точек для ракеты (красные)
+            miss_points = [self.world_to_screen(m_pos) for _, m_pos in self.trajectory]
+            pygame.draw.lines(screen, RED, False, miss_points, 1)
             
         self.draw_direction_arrow(screen, GREEN, self.world_to_screen((0, 0)))
         self.draw_direction_arrow(screen, RED, self.world_to_screen((self.missile.x, self.missile.y)))
@@ -232,7 +235,7 @@ class Simulation:
         # Отрисовка объектов
         a_pos = self.world_to_screen((self.airplane.x, self.airplane.y))
         m_pos = self.world_to_screen((self.missile.x, self.missile.y))
-        pygame.draw.circle(screen, BLUE, a_pos, 8)
+        pygame.draw.circle(screen, BLUE, a_pos, 6)
         pygame.draw.circle(screen, RED, m_pos, 6)
         
         # Отрисовка текста
