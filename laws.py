@@ -3,7 +3,7 @@ from const import eps, K_a
 from numpy import sign
 
 
-def norm_a(vx, vy, a):
+def norm_a(vx, vy, a): #раскладывает ускорение цели на составляющие так, что они перпендикулярны скорости
     vp = hypot(vx, vy)
     if vp < eps:
         return [0.0, 0.0]
@@ -12,21 +12,8 @@ def norm_a(vx, vy, a):
     ay = a * (vx / vp)
     return [ax, ay]
 
-def TPN(target, pursuer, N):
-    x = target.x - pursuer.x
-    y = target.y - pursuer.y
-    vx = target.vx - pursuer.vx
-    vy = target.vy - pursuer.vy
-    
-    if hypot(x, y) <= eps:
-        return[0.0, 0.0]
-
-    los_rate = (vy * x - vx * y) / (x**2 + y**2)
-    vp = hypot(pursuer.vx, pursuer.vy)
-    
-    a = los_rate * vp * N
-    
-    return a
+def join_a(vx, vy, ax, ay):
+    return hypot(ax, ay) * sign(vx * ay - vy * ax)
 
 def PP(target, pursuer, N):
     x = target.x - pursuer.x
@@ -46,6 +33,22 @@ def PP(target, pursuer, N):
     
     return a
 
+def TPN(target, pursuer, N):
+    x = target.x - pursuer.x
+    y = target.y - pursuer.y
+    vx = target.vx - pursuer.vx
+    vy = target.vy - pursuer.vy
+    
+    if hypot(x, y) <= eps:
+        return[0.0, 0.0]
+
+    los_rate = (vy * x - vx * y) / (x**2 + y**2)
+    vp = hypot(pursuer.vx, pursuer.vy)
+    
+    a = los_rate * vp * N
+    
+    return a
+
 def APN(target, pursuer, N):
     a = TPN(target, pursuer, N)
     x = target.x - pursuer.x
@@ -53,7 +56,7 @@ def APN(target, pursuer, N):
 
     r = hypot(x, y)
     if r < eps:
-        return [ax, ay]
+        return a
 
     K = min(K_a / r, 1)
 
@@ -82,7 +85,7 @@ def ZEMPN(target, pursuer, N):
     ax_orig = (N * ZEMx) / tgo_sq
     ay_orig = (N * ZEMy) / tgo_sq
     # для направления по перпендикуляру к скорости
-    a = hypot(ax_orig, ay_orig) * sign(pursuer.vx * ay_orig - pursuer.vy * ax_orig)
+    a = join_a(pursuer.vx, pursuer.vy, ax_orig, ay_orig)
 
     return a
 
@@ -114,6 +117,6 @@ def ZEMAPN(target, pursuer, N):
     ax_orig = (N * ZEMx) / tgo_sq
     ay_orig = (N * ZEMy) / tgo_sq
 
-    a = hypot(ax_orig, ay_orig) * sign(pursuer.vx * ay_orig - pursuer.vy * ax_orig)
+    a = join_a(pursuer.vx, pursuer.vy, ax_orig, ay_orig)
 
     return a

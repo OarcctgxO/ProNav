@@ -48,7 +48,7 @@ class Simulation:
         self.keys_pressed = set()
         self.game_over = False
         self.win = False
-        self.scale = 20  # Фиксированный масштаб
+        self.scale = 10  # Фиксированный масштаб
         
     def world_to_screen(self, pos):
         # Смещение относительно самолета
@@ -117,7 +117,7 @@ class Simulation:
             (self.airplane.x, self.airplane.y),
             (self.missile.x, self.missile.y)
         ))
-        if len(self.trajectory) > 5000:
+        if len(self.trajectory) > 2000:
             self.trajectory.pop(0)
             
         # Проверка коллизий
@@ -193,7 +193,7 @@ class Simulation:
         
         # Отрисовка сетки
         grid_size = 5  # Размер ячейки сетки в мировых координатах
-        grid_range = 40  # Диапазон отрисовки сетки
+        grid_range = 100  # Диапазон отрисовки сетки
         
         # Рассчитываем положение самолета в сетке
         grid_center_x = math.floor(self.airplane.x / grid_size) * grid_size
