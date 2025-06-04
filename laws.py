@@ -1,5 +1,5 @@
 from math import atan2, sqrt, hypot, pi
-from const import eps, K_a
+from const import eps, K_aс
 from numpy import sign
 
 
@@ -58,7 +58,7 @@ def APN(target, pursuer, N):
     if r < eps:
         return a
 
-    K = min(K_a / r, 1)
+    K = min(K_aс / r, 1)
 
     a += N * 0.5 * (- target.ax * K * x + target.ay * K * y ) / r
 
@@ -96,7 +96,7 @@ def ZEMAPN(target, pursuer, N):
     vy = target.vy - pursuer.vy
 
     r = hypot(x, y)
-    K = min(K_a / r, 1)
+    K = min(K_aс / r, 1)
     ax = target.ax
     ay = target.ay
 

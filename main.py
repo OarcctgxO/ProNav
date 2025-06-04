@@ -3,9 +3,8 @@ environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import pygame
 from pygame.locals import *
 import math
-import sys
 from bodies import *
-from const import acceleration_pressed, FPS, sim_second, airplane_start, missile_start, eps
+from const import *
 import laws
 
 # Инициализация Pygame
@@ -23,6 +22,7 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
 YELLOW = (255, 255, 0)
+DEEPSKYBLUE = (0, 191, 255)
 
 class Simulation:
     def __init__(self):
@@ -42,7 +42,7 @@ class Simulation:
         self.airplane = airplane(*airplane_start)
         self.missile = missile(
             *missile_start,
-            target=self.airplane, law=self.current_law, N=3
+            target=self.airplane, law=self.current_law, N = N
         )
         self.trajectory = []
         self.keys_pressed = set()
@@ -76,6 +76,31 @@ class Simulation:
         screen_y = HEIGHT // 2 - sy
         
         return (int(screen_x), int(screen_y))
+    
+    def screen_to_world(self, pos):
+        sx, sy = pos
+        # Переводим экранные координаты в относительные
+        dx_rot = (sx - WIDTH // 2) / self.scale
+        dy_rot = (HEIGHT // 2 - sy) / self.scale  # учтём инверсию Y
+        
+        vx, vy = self.airplane.vx, self.airplane.vy
+        speed = math.hypot(vx, vy)
+        if speed < eps:
+            # Без поворота
+            dx = dx_rot
+            dy = dy_rot
+        else:
+            # Вычисляем компоненты поворота
+            cos_alpha = vy / speed
+            sin_alpha = vx / speed
+            # Обратное преобразование поворота
+            dx = dx_rot * cos_alpha + dy_rot * sin_alpha
+            dy = -dx_rot * sin_alpha + dy_rot * cos_alpha
+        
+        # Возвращаем абсолютные мировые координаты
+        x = self.airplane.x + dx
+        y = self.airplane.y + dy
+        return (x, y)
         
     def handle_input(self, event):
         if event.type == KEYDOWN:
@@ -184,7 +209,7 @@ class Simulation:
             pygame.draw.polygon(surface, color, arrow_points)
             
     def draw(self):
-        screen.fill(BLACK)
+        screen.fill(DEEPSKYBLUE)
         
         # Отрисовка зоны победы
         center = self.world_to_screen((0, 0))
@@ -193,37 +218,49 @@ class Simulation:
         
         # Отрисовка сетки
         grid_size = 10  # Размер ячейки сетки в мировых координатах
-        grid_range = 100  # Диапазон отрисовки сетки
         
-        # Рассчитываем положение самолета в сетке
-        grid_center_x = math.floor(self.airplane.x / grid_size) * grid_size
-        grid_center_y = math.floor(self.airplane.y / grid_size) * grid_size
+        # Определяем углы экрана
+        screen_corners = [
+            (0, 0), (WIDTH, 0), 
+            (WIDTH, HEIGHT), (0, HEIGHT)
+        ]
         
-        # Рассчитываем начальные и конечные точки для сетки
-        start_x = grid_center_x - grid_range
-        end_x = grid_center_x + grid_range
-        start_y = grid_center_y - grid_range
-        end_y = grid_center_y + grid_range
-
-        # Вертикальные линии
-        for x in range(start_x, end_x + grid_size, grid_size):
-            for y in range(start_y, end_y + grid_size, grid_size):
-                start = self.world_to_screen((x, start_y))
-                end = self.world_to_screen((x, end_y))
-                pygame.draw.line(screen, (40, 40, 40), start, end, 1)
-
-        # Горизонтальные линии
-        for y in range(start_y, end_y + grid_size, grid_size):
-            for x in range(start_x, end_x + grid_size, grid_size):
-                start = self.world_to_screen((start_x, y))
-                end = self.world_to_screen((end_x, y))
-                pygame.draw.line(screen, (40, 40, 40), start, end, 1)
+        # Преобразуем углы экрана в мировые координаты
+        world_corners = [self.screen_to_world(corner) for corner in screen_corners]
+        
+        # Находим границы видимой области в мировых координатах
+        min_x = min(corner[0] for corner in world_corners)
+        max_x = max(corner[0] for corner in world_corners)
+        min_y = min(corner[1] for corner in world_corners)
+        max_y = max(corner[1] for corner in world_corners)
+        
+        # Вертикальные линии сетки
+        start_kx = math.floor(min_x / grid_size)
+        end_kx = math.ceil(max_x / grid_size)
+        for k in range(start_kx, end_kx + 1):
+            x = k * grid_size
+            start_point = (x, min_y)
+            end_point = (x, max_y)
+            start_screen = self.world_to_screen(start_point)
+            end_screen = self.world_to_screen(end_point)
+            pygame.draw.line(screen, (200, 200, 200), start_screen, end_screen, 1)
+        
+        # Горизонтальные линии сетки
+        start_ky = math.floor(min_y / grid_size)
+        end_ky = math.ceil(max_y / grid_size)
+        for k in range(start_ky, end_ky + 1):
+            y = k * grid_size
+            start_point = (min_x, y)
+            end_point = (max_x, y)
+            start_screen = self.world_to_screen(start_point)
+            end_screen = self.world_to_screen(end_point)
+            pygame.draw.line(screen, (200, 200, 200), start_screen, end_screen, 1)
             
         # Отрисовка траекторий
         if len(self.trajectory) > 1:
             # Подготовка точек для самолета (синие)
             air_points = [self.world_to_screen(a_pos) for a_pos, _ in self.trajectory]
-            pygame.draw.lines(screen, BLUE, False, air_points, 1)
+            pygame.draw.lines(screen, BLACK, False, air_points, 1)
             
             # Подготовка точек для ракеты (красные)
             miss_points = [self.world_to_screen(m_pos) for _, m_pos in self.trajectory]
@@ -235,7 +272,7 @@ class Simulation:
         # Отрисовка объектов
         a_pos = self.world_to_screen((self.airplane.x, self.airplane.y))
         m_pos = self.world_to_screen((self.missile.x, self.missile.y))
-        pygame.draw.circle(screen, BLUE, a_pos, 6)
+        pygame.draw.circle(screen, BLACK, a_pos, 6)
         pygame.draw.circle(screen, RED, m_pos, 6)
         
         # Отрисовка текста
