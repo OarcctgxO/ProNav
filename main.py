@@ -1,5 +1,7 @@
 from os import environ
 environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, message="pkg_resources is deprecated")
 import pygame
 from pygame.locals import *
 import math
