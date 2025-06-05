@@ -48,7 +48,7 @@ class Simulation:
         self.keys_pressed = set()
         self.game_over = False
         self.win = False
-        self.scale = 10  # Фиксированный масштаб
+        self.scale = scale
         
     def world_to_screen(self, pos):
         # Смещение относительно самолета
