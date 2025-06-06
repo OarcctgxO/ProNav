@@ -15,7 +15,7 @@ WIDTH, HEIGHT = 1600, 900
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Ракетная симуляция")
 clock = pygame.time.Clock()
-font = pygame.font.Font(None, 24)
+font = pygame.font.SysFont("Impact", 20)
 
 # Цвета
 WHITE = (255, 255, 255)

@@ -58,9 +58,7 @@ def APN(target, pursuer, N):
     if r < eps:
         return a
 
-    K = min(K_aс / r, 1)
-
-    a += N * 0.5 * (- target.ax * K * x + target.ay * K * y ) / r
+    a += N * 0.5 * (- target.ax * x + target.ay * y ) / r
 
     return a
 
@@ -96,7 +94,6 @@ def ZEMAPN(target, pursuer, N):
     vy = target.vy - pursuer.vy
 
     r = hypot(x, y)
-    K = min(K_aс / r, 1)
     ax = target.ax
     ay = target.ay
 
@@ -110,8 +107,8 @@ def ZEMAPN(target, pursuer, N):
     ZEMx = x + vx * tgo
     ZEMy = y + vy * tgo
 
-    ZEMx += 0.5 * ax * K * tgo**2
-    ZEMy += 0.5 * ay * K * tgo**2
+    ZEMx += 0.5 * ax * tgo**2
+    ZEMy += 0.5 * ay * tgo**2
 
     tgo_sq = tgo**2 + eps
     ax_orig = (N * ZEMx) / tgo_sq
