@@ -211,7 +211,7 @@ class Simulation:
             pygame.draw.polygon(surface, color, arrow_points)
             
     def draw(self):
-        screen.fill(DEEPSKYBLUE)
+        screen.fill(BLACK)
         
         # Отрисовка зоны победы
         center = self.world_to_screen((0, 0))
@@ -262,7 +262,7 @@ class Simulation:
         if len(self.trajectory) > 1:
             # Подготовка точек для самолета (синие)
             air_points = [self.world_to_screen(a_pos) for a_pos, _ in self.trajectory]
-            pygame.draw.lines(screen, BLACK, False, air_points, 1)
+            pygame.draw.lines(screen, BLUE, False, air_points, 1)
             
             # Подготовка точек для ракеты (красные)
             miss_points = [self.world_to_screen(m_pos) for _, m_pos in self.trajectory]
@@ -274,7 +274,7 @@ class Simulation:
         # Отрисовка объектов
         a_pos = self.world_to_screen((self.airplane.x, self.airplane.y))
         m_pos = self.world_to_screen((self.missile.x, self.missile.y))
-        pygame.draw.circle(screen, BLACK, a_pos, 6)
+        pygame.draw.circle(screen, BLUE, a_pos, 6)
         pygame.draw.circle(screen, RED, m_pos, 6)
         
         # Отрисовка текста
