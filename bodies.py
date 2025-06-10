@@ -1,6 +1,7 @@
 from math import hypot
 from const import eps, air_drag
 from laws import norm_a
+from filter import AccelerationFilter
 class airplane:
     def __init__(self, x, y, vx, vy):
         self.x = x  #координата x
@@ -42,11 +43,12 @@ class airplane:
         self.vy = new_vy
 
 class missile(airplane):    #ракета почти ничем не отличается от самолета
-    def __init__(self, x, y, vx, vy, law, target, N):
+    def __init__(self, x, y, vx, vy, law, target, N, alpha):
         super().__init__(x, y, vx, vy)
         self.law = law  #закон наведения на цель
         self.target = target    #сама цель
         self.N = N  #коэффициент пропорциональности наведения
+        self.filter = AccelerationFilter(alpha)
         
     def calc_move(self, dt):
         self.a = self.law(self.target, self, self.N)   #считаем ускорение для перехвата цели (по одному из законов)

@@ -44,7 +44,7 @@ class Simulation:
         self.airplane = airplane(*airplane_start)
         self.missile = missile(
             *missile_start,
-            target=self.airplane, law=self.current_law, N = N
+            target=self.airplane, law=self.current_law, N = N, alpha=alpha
         )
         self.trajectory = []
         self.keys_pressed = set()
@@ -219,7 +219,6 @@ class Simulation:
         pygame.draw.circle(screen, GREEN, center, radius, 2)
         
         # Отрисовка сетки
-        grid_size = 10  # Размер ячейки сетки в мировых координатах
         
         # Определяем углы экрана
         screen_corners = [
@@ -262,11 +261,11 @@ class Simulation:
         if len(self.trajectory) > 1:
             # Подготовка точек для самолета (синие)
             air_points = [self.world_to_screen(a_pos) for a_pos, _ in self.trajectory]
-            pygame.draw.lines(screen, BLUE, False, air_points, 1)
+            pygame.draw.lines(screen, BLUE, False, air_points, 2)
             
             # Подготовка точек для ракеты (красные)
             miss_points = [self.world_to_screen(m_pos) for _, m_pos in self.trajectory]
-            pygame.draw.lines(screen, RED, False, miss_points, 1)
+            pygame.draw.lines(screen, RED, False, miss_points, 2)
             
         self.draw_direction_arrow(screen, GREEN, self.world_to_screen((0, 0)))
         self.draw_direction_arrow(screen, RED, self.world_to_screen((self.missile.x, self.missile.y)))
@@ -304,7 +303,7 @@ class Simulation:
             text = "Цель поражена!" if not self.win else "Победа!"
             color = RED if not self.win else GREEN
             surf = font.render(text, True, color)
-            screen.blit(surf, (WIDTH//2 - 80, HEIGHT//2))
+            screen.blit(surf, (WIDTH//2 - 160, HEIGHT//2))
             
         pygame.display.flip()
 

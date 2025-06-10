@@ -1,5 +1,5 @@
-from math import atan2, sqrt, hypot, pi
-from const import eps
+from math import atan2, hypot, pi, sqrt, sin, cos
+from const import eps, air_drag
 from numpy import sign
 
 
@@ -19,7 +19,7 @@ def PP(target, pursuer, N):
     x = target.x - pursuer.x
     y = target.y - pursuer.y
     if hypot(x, y) < eps:
-        return [0.0, 0.0]
+        return 0.0
     
     vp = hypot(pursuer.vx, pursuer.vy)
 
@@ -40,7 +40,7 @@ def TPN(target, pursuer, N):
     vy = target.vy - pursuer.vy
     
     if hypot(x, y) <= eps:
-        return[0.0, 0.0]
+        return 0.0
 
     los_rate = (vy * x - vx * y) / (x**2 + y**2)
     vp = hypot(pursuer.vx, pursuer.vy)
@@ -53,13 +53,21 @@ def APN(target, pursuer, N):
     a = TPN(target, pursuer, N)
     x = target.x - pursuer.x
     y = target.y - pursuer.y
-
+    axt, ayt = pursuer.filter.update(target.ax, target.ay)
     r = hypot(x, y)
+    
     if r < eps:
-        return a
+        return 0.0
 
-    a += N * 0.5 * (- target.ax * x + target.ay * y ) / r
+    nx = -y / r
+    ny = x / r
+    a_target_normal = axt * nx + ayt * ny
 
+    # Адаптивный N: уменьшаем манёвры при низкой скорости
+    pursuer_speed = hypot(pursuer.vx, pursuer.vy)
+    adaptive_N = N * min(1.0, pursuer_speed / 10.0)  # 10.0 — пороговая скорость
+    a += (adaptive_N / 2) * a_target_normal
+    
     return a
 
 def ZEMPN(target, pursuer, N):
@@ -98,34 +106,34 @@ def ZEMAPN(target, pursuer, N):
     y = target.y - pursuer.y
     vx = target.vx - pursuer.vx
     vy = target.vy - pursuer.vy
-
+    axt, ayt = pursuer.filter.update(target.ax, target.ay)
     r = hypot(x, y)
-    ax = target.ax
-    ay = target.ay
-
+    
     if r < eps or hypot(pursuer.vx, pursuer.vy) < eps:
-        return [0. , 0.]
+        return 0.0
 
-    numerator = x * vx + y * vy
-    denominator = vx**2 + vy**2 + eps
-    tgo = -numerator / denominator
+    # Прогнозируем tgo с учётом текущего замедления ракеты
+    tgo = max(0.1, -(x * vx + y * vy) / (vx**2 + vy**2 + eps))  # Базовая оценка
 
-    ZEMx = x + vx * tgo
-    ZEMy = y + vy * tgo
+    # Учёт потери скорости из-за манёвров (air_drag * a²)
+    current_a = hypot(pursuer.ax, pursuer.ay)
+    speed_loss = air_drag * current_a * tgo
+    pursuer_speed_predicted = max(0.1, hypot(pursuer.vx, pursuer.vy) - speed_loss)
 
-    ZEMx += 0.5 * ax * tgo**2
-    ZEMy += 0.5 * ay * tgo**2
-
-    tgo_sq = tgo**2 + eps
+    # Корректируем ZEM с учётом прогнозируемой скорости
+    ZEMx = x + vx * tgo + 0.5 * axt * tgo**2
+    ZEMy = y + vy * tgo + 0.5 * ayt * tgo**2
 
     norm_x = -pursuer.vy
     norm_y = pursuer.vx
     norm_length = hypot(norm_x, norm_y)
+    
     if norm_length < eps:
         return 0.0
-
+    
     ZEM_proj = (ZEMx * norm_x + ZEMy * norm_y) / norm_length
+    tgo_sq = tgo**2 + eps
 
-    a = (N * ZEM_proj) / tgo_sq
-
-    return a
+    # Адаптивный N: уменьшаем манёвры при низкой прогнозируемой скорости
+    adaptive_N = N * min(1.0, pursuer_speed_predicted / 10.0)
+    return (adaptive_N * ZEM_proj) / tgo_sq
