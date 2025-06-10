@@ -152,7 +152,7 @@ class Simulation:
             self.missile.x - self.airplane.x,
             self.missile.y - self.airplane.y
         )
-        if distance < 0.2:
+        if distance < 0.1:
             self.game_over = True
             
         # Проверка победы
