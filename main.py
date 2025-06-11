@@ -19,7 +19,6 @@ screen = pygame.display.set_mode(
 pygame.display.set_caption("Ракетная симуляция")
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Impact", 20)
-print(pygame.display.Info())  # Выведет информацию о дисплее (hw = True если ускорение работает)
 # Цвета
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
