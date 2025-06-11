@@ -15,6 +15,11 @@ def norm_a(vx, vy, a): #раскладывает ускорение цели н�
 def join_a(vx, vy, ax, ay):
     return hypot(ax, ay) * sign(vx * ay - vy * ax)
 
+def vc(dx, dy, dvx, dvy):
+    v = hypot(dvx, dvy) * sign(- dvx * dx - dvy * dy)
+    return v
+    
+
 def PP(target, pursuer, N):
     x = target.x - pursuer.x
     y = target.y - pursuer.y
@@ -137,3 +142,20 @@ def ZEMAPN(target, pursuer, N):
     # Адаптивный N: уменьшаем манёвры при низкой прогнозируемой скорости
     adaptive_N = N * min(1.0, pursuer_speed_predicted / 10.0)
     return (adaptive_N * ZEM_proj) / tgo_sq
+
+def Hybrid(target, pursuer, N):
+    x = target.x - pursuer.x
+    y = target.y - pursuer.y
+    vx = target.vx - pursuer.vx
+    vy = target.vy - pursuer.vy
+    r = hypot(x, y)
+    v = vc(x, y, vx, vy)
+    if r < eps:
+        return 0.0
+    if v < 0:
+        return PP(target, pursuer, N)
+    tgo = r / v
+    if tgo > 5:
+        return PP(target, pursuer, N)
+    if 5 >= tgo:
+        return ZEMPN(target, pursuer, N)

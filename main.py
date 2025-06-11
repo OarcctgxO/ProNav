@@ -1,5 +1,6 @@
-from os import environ
-environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+import os
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
+os.environ['SDL_VIDEODRIVER'] = 'windows'
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, message="pkg_resources is deprecated")
 import pygame
@@ -12,11 +13,13 @@ import laws
 # Инициализация Pygame
 pygame.init()
 WIDTH, HEIGHT = 1600, 900
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode(
+    (WIDTH, HEIGHT), pygame.DOUBLEBUF | pygame.SCALED
+)
 pygame.display.set_caption("Ракетная симуляция")
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Impact", 20)
-
+print(pygame.display.Info())  # Выведет информацию о дисплее (hw = True если ускорение работает)
 # Цвета
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -35,7 +38,8 @@ class Simulation:
             K_2: laws.TPN,
             K_3: laws.APN,
             K_4: laws.ZEMPN,
-            K_5: laws.ZEMAPN
+            K_5: laws.ZEMAPN,
+            K_6: laws.Hybrid
         }
         self.current_law = laws.PP
         self.reset()
@@ -212,7 +216,7 @@ class Simulation:
             
     def draw(self):
         screen.fill(BLACK)
-        
+
         # Отрисовка зоны победы
         center = self.world_to_screen((0, 0))
         radius = int(1 * self.scale)
@@ -244,7 +248,7 @@ class Simulation:
             end_point = (x, max_y)
             start_screen = self.world_to_screen(start_point)
             end_screen = self.world_to_screen(end_point)
-            pygame.draw.line(screen, (200, 200, 200), start_screen, end_screen, 1)
+            #pygame.draw.line(screen, (200, 200, 200), start_screen, end_screen, 1)
         
         # Горизонтальные линии сетки
         start_ky = math.floor(min_y / grid_size)
@@ -255,7 +259,7 @@ class Simulation:
             end_point = (max_x, y)
             start_screen = self.world_to_screen(start_point)
             end_screen = self.world_to_screen(end_point)
-            pygame.draw.line(screen, (200, 200, 200), start_screen, end_screen, 1)
+            #pygame.draw.line(screen, (200, 200, 200), start_screen, end_screen, 1)
             
         # Отрисовка траекторий
         if len(self.trajectory) > 1:
@@ -279,7 +283,7 @@ class Simulation:
         # Отрисовка текста
         texts = [
             f"Закон наведения: {self.current_law.__name__}",
-            "[1-5] - выбор закона",
+            "[1-6] - выбор закона",
             "[SPACE] - старт/пауза",
             "[R] - сброс",
             "[AD] - управление самолетом"
