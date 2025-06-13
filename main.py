@@ -166,6 +166,33 @@ class Simulation:
             self.win = True
             self.game_over = True
 
+    def draw_land(self):
+        if not LAND_IMAGE:
+            return
+
+        # 1. Получаем направление скорости самолета (угол поворота в градусах)
+        vx, vy = self.airplane.vx, self.airplane.vy
+        speed = math.hypot(vx, vy)
+        angle_deg = math.degrees(math.atan2(-vy, vx)) if speed > eps else 0
+
+        # 2. Размеры изображения земли в мировых координатах
+        world_width, world_height = LAND_IMAGE.get_size()
+        pixel_width = int(world_width * self.scale)
+        pixel_height = int(world_height * self.scale)
+
+        # 3. Масштабируем и поворачиваем землю (кешируем при одинаковых scale и angle)
+        scaled_land = pygame.transform.smoothscale(
+            LAND_IMAGE, (pixel_width, pixel_height)
+        )
+        rotated_land = pygame.transform.rotate(scaled_land, angle_deg)
+
+        # 4. Центр земли (0,0) в мировых координатах -> экранные координаты
+        center_screen = self.world_to_screen((0, 0))
+        land_rect = rotated_land.get_rect(center=center_screen)
+
+        # 5. Отрисовка
+        screen.blit(rotated_land, land_rect)
+
     def draw_direction_arrow(
         self,
         surface,
@@ -226,7 +253,7 @@ class Simulation:
 
     def draw(self):
         screen.fill(BLACK)
-        
+        self.draw_land()
         # Всегда вычисляем границы видимой области
         screen_corners = [(0, 0), (WIDTH, 0), (WIDTH, HEIGHT), (0, HEIGHT)]
         world_corners = [self.screen_to_world(corner) for corner in screen_corners]
@@ -235,36 +262,6 @@ class Simulation:
         min_y = min(corner[1] for corner in world_corners)
         max_y = max(corner[1] for corner in world_corners)
 
-        if LAND_IMAGE:
-            # Рассчитываем угол поворота земли (противоположный направлению самолета)
-            vx, vy = self.airplane.vx, self.airplane.vy
-            speed = math.hypot(vx, vy)
-            if speed < eps:
-                angle_deg = 0
-            else:
-                # Угол в радианах (относительно положительного направления X)
-                angle_rad = -math.atan2(vy, vx)
-                # Преобразуем в градусы и добавляем 90 градусов, чтобы верх земли был севером (положительное Y)
-                angle_deg = math.degrees(angle_rad) + 90
-            
-            # Масштабируем изображение земли с учетом мирового масштаба
-            # Размер земли в мировых координатах: 1000x1000
-            world_size = 1000
-            pixel_size = int(world_size * self.scale)
-            scaled_land = pygame.transform.smoothscale(LAND_IMAGE, (pixel_size, pixel_size))
-            
-            # Поворачиваем изображение земли
-            rotated_land = pygame.transform.rotate(scaled_land, angle_deg)
-            
-            # Позиционируем землю так, чтобы ее центр (0,0) совпадал с зеленой зоной победы
-            land_rect = rotated_land.get_rect()
-            center_pos = self.world_to_screen((0, 0))
-            land_rect.center = center_pos
-            
-            # Рисуем землю
-            screen.blit(rotated_land, land_rect)
-        
-        # Остальной код отрисовки остается без изменений...
         # Отрисовка зоны победы
         center = self.world_to_screen((0, 0))
         radius = int(1 * self.scale)
@@ -291,7 +288,6 @@ class Simulation:
             start_screen = self.world_to_screen(start_point)
             end_screen = self.world_to_screen(end_point)
             # pygame.draw.line(screen, (200, 200, 200), start_screen, end_screen, 1)
-
 
         # Отрисовка траекторий
         if len(self.trajectory) > 1:
