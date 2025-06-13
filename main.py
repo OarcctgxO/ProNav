@@ -9,29 +9,28 @@ warnings.filterwarnings(
 )
 import pygame
 from pygame.locals import *
+from OpenGL.GL import *
+from OpenGL.GLU import *
 import math
-
-LAND_IMAGE = None
 from bodies import *
 from const import *
 import laws
 
-# Инициализация Pygame
+# Инициализация
 pygame.init()
 WIDTH, HEIGHT = 1600, 900
-screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.DOUBLEBUF | pygame.SCALED)
-LAND_IMAGE = pygame.image.load("land.png").convert()
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.DOUBLEBUF | pygame.OPENGL)
+LAND_IMAGE = pygame.image.load("land.png").convert_alpha()
 pygame.display.set_caption("Ракетная симуляция")
 clock = pygame.time.Clock()
 font = pygame.font.SysFont("Impact", 20)
+
 # Цвета
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
-YELLOW = (255, 255, 0)
-DEEPSKYBLUE = (0, 191, 255)
 
 
 class Simulation:
@@ -48,6 +47,45 @@ class Simulation:
         }
         self.current_law = laws.PP
         self.reset()
+        self.init_gl()
+        self.pygame_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+
+    def init_gl(self):
+        glEnable(GL_TEXTURE_2D)
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        glClearColor(0.0, 0.0, 0.0, 1.0)
+        glViewport(0, 0, WIDTH, HEIGHT)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        gluOrtho2D(0, WIDTH, 0, HEIGHT)
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+
+        self.land_texture = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, self.land_texture)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        texture_data = pygame.image.tostring(LAND_IMAGE, "RGBA", 1)
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            LAND_IMAGE.get_width(),
+            LAND_IMAGE.get_height(),
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            texture_data,
+        )
+
+        self.interface_texture = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, self.interface_texture)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, None
+        )
 
     def reset(self):
         self.airplane = airplane(*airplane_start)
@@ -61,13 +99,11 @@ class Simulation:
         self.scale = scale
 
     def world_to_screen(self, pos):
-        # Смещение относительно самолета
         dx = pos[0] - self.airplane.x
         dy = pos[1] - self.airplane.y
-
-        # Вычисляем угол поворота
         vx, vy = self.airplane.vx, self.airplane.vy
         speed = math.hypot(vx, vy)
+
         if speed < eps:
             dx_rot = dx
             dy_rot = dy
@@ -77,41 +113,173 @@ class Simulation:
             dx_rot = dx * math.cos(alpha) - dy * math.sin(alpha)
             dy_rot = dx * math.sin(alpha) + dy * math.cos(alpha)
 
-        # Применяем масштаб
         sx = dx_rot * self.scale
         sy = dy_rot * self.scale
+        return (WIDTH // 2 + int(sx), (HEIGHT // 2 - int(sy)))
 
-        # Центрируем самолет и переворачиваем Y-ось
-        screen_x = WIDTH // 2 + sx
-        screen_y = HEIGHT // 2 - sy
-
-        return (int(screen_x), int(screen_y))
-
-    def screen_to_world(self, pos):
-        sx, sy = pos
-        # Переводим экранные координаты в относительные
-        dx_rot = (sx - WIDTH // 2) / self.scale
-        dy_rot = (HEIGHT // 2 - sy) / self.scale  # учтём инверсию Y
+    def draw_land(self):
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glLoadIdentity()
 
         vx, vy = self.airplane.vx, self.airplane.vy
         speed = math.hypot(vx, vy)
-        if speed < eps:
-            # Без поворота
-            dx = dx_rot
-            dy = dy_rot
+        angle_deg = -math.degrees(math.atan2(vy, vx)) + 90 if speed > eps else 0
+
+        glPushMatrix()
+        glTranslatef(WIDTH // 2, HEIGHT // 2, 0)
+        glRotatef(angle_deg, 0, 0, 1)
+        glScalef(self.scale, self.scale, 1)
+        glTranslatef(-self.airplane.x, -self.airplane.y, 0)
+
+        glBindTexture(GL_TEXTURE_2D, self.land_texture)
+        glBegin(GL_QUADS)
+        glTexCoord2f(0, 1)
+        glVertex2f(-500, -500)
+        glTexCoord2f(1, 1)
+        glVertex2f(500, -500)
+        glTexCoord2f(1, 0)
+        glVertex2f(500, 500)
+        glTexCoord2f(0, 0)
+        glVertex2f(-500, 500)
+        glEnd()
+        glPopMatrix()
+
+    def draw_direction_arrow(
+        self,
+        surface,
+        color,
+        target_pos,
+        arrow_length=20,
+        arrow_head_size=5,
+        line_width=2,
+    ):
+        center_x, center_y = WIDTH // 2, HEIGHT // 2
+        target_x, target_y = target_pos
+
+        dir_x = target_x - center_x
+        dir_y = target_y - center_y
+        distance = math.hypot(dir_x, dir_y)
+
+        if distance > 0:
+            norm_x = dir_x / distance
+            norm_y = dir_y / distance
         else:
-            # Вычисляем компоненты поворота
-            cos_alpha = vy / speed
-            sin_alpha = vx / speed
-            # Обратное преобразование поворота
-            dx = dx_rot * cos_alpha + dy_rot * sin_alpha
-            dy = -dx_rot * sin_alpha + dy_rot * cos_alpha
+            return
 
-        # Возвращаем абсолютные мировые координаты
-        x = self.airplane.x + dx
-        y = self.airplane.y + dy
-        return (x, y)
+        end_x = center_x + norm_x * arrow_length
+        end_y = center_y + norm_y * arrow_length
 
+        pygame.draw.line(
+            surface, color, (center_x, center_y), (end_x, end_y), line_width
+        )
+
+        angle = math.atan2(dir_y, dir_x)
+        arrow_points = [
+            (end_x, end_y),
+            (
+                end_x - arrow_head_size * math.cos(angle - math.pi / 6),
+                end_y - arrow_head_size * math.sin(angle - math.pi / 6),
+            ),
+            (
+                end_x - arrow_head_size * math.cos(angle + math.pi / 6),
+                end_y - arrow_head_size * math.sin(angle + math.pi / 6),
+            ),
+        ]
+        pygame.draw.polygon(surface, color, arrow_points)
+
+    def draw_pygame_elements(self):
+        self.pygame_surface.fill((0, 0, 0, 0))
+
+        # Отрисовка зоны победы
+        center = self.world_to_screen((0, 0))
+        pygame.draw.circle(self.pygame_surface, GREEN, center, int(1 * self.scale), 2)
+
+        # Отрисовка траекторий
+        if len(self.trajectory) > 1:
+            air_points = [self.world_to_screen(a_pos) for a_pos, _ in self.trajectory]
+            pygame.draw.lines(self.pygame_surface, BLUE, False, air_points, 2)
+            miss_points = [self.world_to_screen(m_pos) for _, m_pos in self.trajectory]
+            pygame.draw.lines(self.pygame_surface, RED, False, miss_points, 2)
+
+        a_pos = self.world_to_screen((self.airplane.x, self.airplane.y))
+        m_pos = self.world_to_screen((self.missile.x, self.missile.y))
+
+        # Отрисовка стрелок направления
+        self.draw_direction_arrow(
+            self.pygame_surface, GREEN, self.world_to_screen((0, 0))
+        )
+        self.draw_direction_arrow(self.pygame_surface, RED, m_pos)
+
+        pygame.draw.circle(self.pygame_surface, BLUE, a_pos, 6)
+        pygame.draw.circle(self.pygame_surface, RED, m_pos, 6)
+
+        # Отрисовка текста (левая часть - управление)
+        control_texts = [
+            f"Закон наведения: {self.current_law.__name__}",
+            "[1-6] - выбор закона",
+            "[SPACE] - старт/пауза",
+            "[R] - сброс",
+            "[AD] - управление самолетом",
+        ]
+        for i, text in enumerate(control_texts):
+            text_surface = font.render(text, True, WHITE)
+            self.pygame_surface.blit(text_surface, (10, 10 + i * 25))
+
+        # Отрисовка текста (правая часть - расстояния)
+        distance_texts = [
+            f"Расстояние до цели: {int(math.hypot(self.airplane.x, self.airplane.y))}",
+            f"Расстояние до ракеты: {int(math.hypot(self.airplane.x-self.missile.x, self.airplane.y-self.missile.y))}",
+        ]
+        for i, text in enumerate(distance_texts):
+            color = GREEN if i == 0 else RED
+            text_surface = font.render(text, True, color)
+            self.pygame_surface.blit(
+                text_surface, (WIDTH - text_surface.get_width() - 10, 10 + i * 25)
+            )
+
+        if self.game_over:
+            text = "Цель поражена!" if not self.win else "Победа!"
+            color = RED if not self.win else GREEN
+            surf = font.render(text, True, color)
+            self.pygame_surface.blit(
+                surf, (WIDTH // 2 - surf.get_width() // 2, HEIGHT // 2)
+            )
+
+        # Обновляем текстуру интерфейса
+        texture_data = pygame.image.tostring(self.pygame_surface, "RGBA", False)
+        glBindTexture(GL_TEXTURE_2D, self.interface_texture)
+        glTexSubImage2D(
+            GL_TEXTURE_2D,
+            0,
+            0,
+            0,
+            WIDTH,
+            HEIGHT,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            texture_data,
+        )
+
+    def draw(self):
+        self.draw_land()
+        self.draw_pygame_elements()
+
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, self.interface_texture)
+        glBegin(GL_QUADS)
+        glTexCoord2f(0, 1)
+        glVertex2f(0, 0)
+        glTexCoord2f(1, 1)
+        glVertex2f(WIDTH, 0)
+        glTexCoord2f(1, 0)
+        glVertex2f(WIDTH, HEIGHT)
+        glTexCoord2f(0, 0)
+        glVertex2f(0, HEIGHT)
+        glEnd()
+
+        pygame.display.flip()
+
+    # Остальные методы остаются без изменений
     def handle_input(self, event):
         if event.type == KEYDOWN:
             if event.key in self.laws:
@@ -124,16 +292,12 @@ class Simulation:
                 self.reset()
                 self.running = False
             self.keys_pressed.add(event.key)
-
         elif event.type == KEYUP:
             if event.key in self.keys_pressed:
                 self.keys_pressed.remove(event.key)
 
     def update_acceleration(self):
         self.airplane.a = 0
-        self.airplane.ax = 0
-        self.airplane.ay = 0
-
         if K_a in self.keys_pressed:
             self.airplane.a = acceleration_pressed
         if K_d in self.keys_pressed:
@@ -147,201 +311,23 @@ class Simulation:
         self.airplane.calc_move(dt)
         self.missile.calc_move(dt)
 
-        # Сохраняем траекторию
         self.trajectory.append(
             ((self.airplane.x, self.airplane.y), (self.missile.x, self.missile.y))
         )
         if len(self.trajectory) > 2000:
             self.trajectory.pop(0)
 
-        # Проверка коллизий
-        distance = hypot(
-            self.missile.x - self.airplane.x, self.missile.y - self.airplane.y
-        )
-        if distance < 0.1:
+        if (
+            math.hypot(
+                self.missile.x - self.airplane.x, self.missile.y - self.airplane.y
+            )
+            < 0.1
+        ):
             self.game_over = True
 
-        # Проверка победы
-        if hypot(self.airplane.x, self.airplane.y) < 1.0:
+        if math.hypot(self.airplane.x, self.airplane.y) < 1.0:
             self.win = True
             self.game_over = True
-
-    def draw_land(self):
-        if not LAND_IMAGE:
-            return
-
-        # 1. Получаем направление скорости самолета (угол поворота в градусах)
-        vx, vy = self.airplane.vx, self.airplane.vy
-        speed = math.hypot(vx, vy)
-        angle_deg = math.degrees(math.atan2(-vy, vx)) if speed > eps else 0
-
-        # 2. Размеры изображения земли в мировых координатах
-        world_width, world_height = LAND_IMAGE.get_size()
-        pixel_width = int(world_width * self.scale)
-        pixel_height = int(world_height * self.scale)
-
-        # 3. Масштабируем и поворачиваем землю (кешируем при одинаковых scale и angle)
-        scaled_land = pygame.transform.smoothscale(
-            LAND_IMAGE, (pixel_width, pixel_height)
-        )
-        rotated_land = pygame.transform.rotate(scaled_land, angle_deg)
-
-        # 4. Центр земли (0,0) в мировых координатах -> экранные координаты
-        center_screen = self.world_to_screen((0, 0))
-        land_rect = rotated_land.get_rect(center=center_screen)
-
-        # 5. Отрисовка
-        screen.blit(rotated_land, land_rect)
-
-    def draw_direction_arrow(
-        self,
-        surface,
-        color,
-        target_pos,
-        arrow_length=20,
-        arrow_head_size=5,
-        line_width=2,
-    ):
-        # Получаем размеры экрана
-        screen_width, screen_height = WIDTH, HEIGHT
-
-        # Центр экрана
-        center_x, center_y = screen_width // 2, screen_height // 2
-        center_pos = (center_x, center_y)
-
-        # Координаты цели
-        target_x, target_y = target_pos
-
-        # Вектор направления
-        dir_x = target_x - center_x
-        dir_y = target_y - center_y
-
-        # Нормализуем вектор (приводим к длине 1)
-        distance = math.hypot(dir_x, dir_y)
-        if distance > 0:
-            norm_x = dir_x / distance
-            norm_y = dir_y / distance
-        else:
-            norm_x, norm_y = 0, 0  # Если цель в центре - не рисуем стрелку
-
-        # Конечная точка стрелки
-        end_x = center_x + norm_x * arrow_length
-        end_y = center_y + norm_y * arrow_length
-        end_pos = (end_x, end_y)
-
-        # Рисуем линию стрелки
-        pygame.draw.line(surface, color, center_pos, end_pos, line_width)
-
-        # Если стрелка достаточно длинная, рисуем наконечник
-        if distance > 0:
-            # Угол наклона стрелки
-            angle = math.atan2(dir_y, dir_x)
-
-            # Точки для треугольника наконечника
-            arrow_points = [
-                end_pos,
-                (
-                    end_x - arrow_head_size * math.cos(angle - math.pi / 6),
-                    end_y - arrow_head_size * math.sin(angle - math.pi / 6),
-                ),
-                (
-                    end_x - arrow_head_size * math.cos(angle + math.pi / 6),
-                    end_y - arrow_head_size * math.sin(angle + math.pi / 6),
-                ),
-            ]
-            pygame.draw.polygon(surface, color, arrow_points)
-
-    def draw(self):
-        screen.fill(BLACK)
-        self.draw_land()
-        # Всегда вычисляем границы видимой области
-        screen_corners = [(0, 0), (WIDTH, 0), (WIDTH, HEIGHT), (0, HEIGHT)]
-        world_corners = [self.screen_to_world(corner) for corner in screen_corners]
-        min_x = min(corner[0] for corner in world_corners)
-        max_x = max(corner[0] for corner in world_corners)
-        min_y = min(corner[1] for corner in world_corners)
-        max_y = max(corner[1] for corner in world_corners)
-
-        # Отрисовка зоны победы
-        center = self.world_to_screen((0, 0))
-        radius = int(1 * self.scale)
-        pygame.draw.circle(screen, GREEN, center, radius, 2)
-
-        # Вертикальные линии сетки
-        start_kx = math.floor(min_x / grid_size)
-        end_kx = math.ceil(max_x / grid_size)
-        for k in range(start_kx, end_kx + 1):
-            x = k * grid_size
-            start_point = (x, min_y)
-            end_point = (x, max_y)
-            start_screen = self.world_to_screen(start_point)
-            end_screen = self.world_to_screen(end_point)
-            # pygame.draw.line(screen, (200, 200, 200), start_screen, end_screen, 1)
-
-        # Горизонтальные линии сетки
-        start_ky = math.floor(min_y / grid_size)
-        end_ky = math.ceil(max_y / grid_size)
-        for k in range(start_ky, end_ky + 1):
-            y = k * grid_size
-            start_point = (min_x, y)
-            end_point = (max_x, y)
-            start_screen = self.world_to_screen(start_point)
-            end_screen = self.world_to_screen(end_point)
-            # pygame.draw.line(screen, (200, 200, 200), start_screen, end_screen, 1)
-
-        # Отрисовка траекторий
-        if len(self.trajectory) > 1:
-            # Подготовка точек для самолета (синие)
-            air_points = [self.world_to_screen(a_pos) for a_pos, _ in self.trajectory]
-            pygame.draw.lines(screen, BLUE, False, air_points, 2)
-
-            # Подготовка точек для ракеты (красные)
-            miss_points = [self.world_to_screen(m_pos) for _, m_pos in self.trajectory]
-            pygame.draw.lines(screen, RED, False, miss_points, 2)
-
-        self.draw_direction_arrow(screen, GREEN, self.world_to_screen((0, 0)))
-        self.draw_direction_arrow(
-            screen, RED, self.world_to_screen((self.missile.x, self.missile.y))
-        )
-
-        # Отрисовка объектов
-        a_pos = self.world_to_screen((self.airplane.x, self.airplane.y))
-        m_pos = self.world_to_screen((self.missile.x, self.missile.y))
-        pygame.draw.circle(screen, BLUE, a_pos, 6)
-        pygame.draw.circle(screen, RED, m_pos, 6)
-
-        # Отрисовка текста
-        texts = [
-            f"Закон наведения: {self.current_law.__name__}",
-            "[1-6] - выбор закона",
-            "[SPACE] - старт/пауза",
-            "[R] - сброс",
-            "[AD] - управление самолетом",
-        ]
-        y = 10
-        for text in texts:
-            surf = font.render(text, True, WHITE)
-            screen.blit(surf, (10, y))
-            y += 30
-
-        txt_dist_win = (
-            f"Расстояние до цели: {int(math.hypot(self.airplane.x, self.airplane.y))}"
-        )
-        txt_dist_mis = f"Расстояние до ракеты: {int(math.hypot(self.airplane.x - self.missile.x, self.airplane.y - self.missile.y))}"
-        y = 10
-        surf = font.render(txt_dist_win, True, GREEN)
-        screen.blit(surf, (WIDTH - surf.get_width() - 10, y))
-        y += 20
-        surf = font.render(txt_dist_mis, True, RED)
-        screen.blit(surf, (WIDTH - surf.get_width() - 10, y))
-
-        if self.game_over:
-            text = "Цель поражена!" if not self.win else "Победа!"
-            color = RED if not self.win else GREEN
-            surf = font.render(text, True, color)
-            screen.blit(surf, (WIDTH // 2 - 160, HEIGHT // 2))
-
-        pygame.display.flip()
 
 
 def main():
