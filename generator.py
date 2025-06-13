@@ -77,12 +77,12 @@ def height_to_color(height_map):
             elif height < mountain_height:
                 factor = (height - forest_height) / (mountain_height - forest_height)
                 color_map[y][x] = interpolate_color(
-                    [34, 139, 34], [100, 60, 20], factor
+                    [34, 139, 34], [60, 60, 60], factor
                 )  # Плавный переход к горам
             else:
                 factor = (height - mountain_height) / (1.0 - mountain_height)
                 color_map[y][x] = interpolate_color(
-                    [100, 60, 20], [220, 220, 220], factor
+                    [60, 60, 60], [240, 240, 240], factor
                 )  # Плавный переход к заснеженным горам
     return color_map
 
