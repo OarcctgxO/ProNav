@@ -4,7 +4,7 @@ from PIL import Image
 from noise import snoise2
 
 # Параметры генерации
-width, height = 1000, 1000
+width, height = 2000, 2000
 scale = 300.0  # Масштаб для больших материков и морей
 seed = 6  # Сид генерации
 

@@ -134,13 +134,13 @@ class Simulation:
         glBindTexture(GL_TEXTURE_2D, self.land_texture)
         glBegin(GL_QUADS)
         glTexCoord2f(0, 1)
-        glVertex2f(-500, -500)
+        glVertex2f(-1000, -1000)
         glTexCoord2f(1, 1)
-        glVertex2f(500, -500)
+        glVertex2f(1000, -1000)
         glTexCoord2f(1, 0)
-        glVertex2f(500, 500)
+        glVertex2f(1000, 1000)
         glTexCoord2f(0, 0)
-        glVertex2f(-500, 500)
+        glVertex2f(-1000, 1000)
         glEnd()
         glPopMatrix()
 
@@ -197,7 +197,7 @@ class Simulation:
         # Отрисовка траекторий
         if len(self.trajectory) > 1:
             air_points = [self.world_to_screen(a_pos) for a_pos, _ in self.trajectory]
-            pygame.draw.lines(self.pygame_surface, BLUE, False, air_points, 2)
+            pygame.draw.lines(self.pygame_surface, BLACK, False, air_points, 2)
             miss_points = [self.world_to_screen(m_pos) for _, m_pos in self.trajectory]
             pygame.draw.lines(self.pygame_surface, RED, False, miss_points, 2)
 
@@ -210,7 +210,7 @@ class Simulation:
         )
         self.draw_direction_arrow(self.pygame_surface, RED, m_pos)
 
-        pygame.draw.circle(self.pygame_surface, BLUE, a_pos, 6)
+        pygame.draw.circle(self.pygame_surface, BLACK, a_pos, 6)
         pygame.draw.circle(self.pygame_surface, RED, m_pos, 6)
 
         # Отрисовка текста (левая часть - управление)
@@ -292,6 +292,11 @@ class Simulation:
                 self.reset()
                 self.running = False
             self.keys_pressed.add(event.key)
+        if event.type == MOUSEBUTTONDOWN:
+            if event.button == 4:  # Колесо вверх
+                self.scale *= 1.1
+            elif event.button == 5:  # Колесо вниз
+                self.scale *= 0.9
         elif event.type == KEYUP:
             if event.key in self.keys_pressed:
                 self.keys_pressed.remove(event.key)
