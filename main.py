@@ -15,6 +15,7 @@ import math
 from bodies import *
 from const import *
 import laws
+import numpy as np
 
 # Инициализация
 pygame.init()
@@ -46,6 +47,7 @@ class Simulation:
             K_6: laws.Hybrid,
         }
         self.current_law = laws.PP
+        self.scale = scale
         self.reset()
         self.init_gl()
         self.pygame_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -96,7 +98,6 @@ class Simulation:
         self.keys_pressed = set()
         self.game_over = False
         self.win = False
-        self.scale = scale
 
     def world_to_screen(self, pos):
         dx = pos[0] - self.airplane.x
@@ -193,13 +194,16 @@ class Simulation:
         # Отрисовка зоны победы
         center = self.world_to_screen((0, 0))
         pygame.draw.circle(self.pygame_surface, GREEN, center, int(1 * self.scale), 2)
+        
+        center = self.world_to_screen((self.airplane.x, self.airplane.y))
+        pygame.draw.circle(self.pygame_surface, BLACK, center, int(0.1 * self.scale), 1)
 
         # Отрисовка траекторий
         if len(self.trajectory) > 1:
             air_points = [self.world_to_screen(a_pos) for a_pos, _ in self.trajectory]
-            pygame.draw.lines(self.pygame_surface, BLACK, False, air_points, 2)
+            pygame.draw.lines(self.pygame_surface, BLACK, False, air_points, 1)
             miss_points = [self.world_to_screen(m_pos) for _, m_pos in self.trajectory]
-            pygame.draw.lines(self.pygame_surface, RED, False, miss_points, 2)
+            pygame.draw.lines(self.pygame_surface, RED, False, miss_points, 1)
 
         a_pos = self.world_to_screen((self.airplane.x, self.airplane.y))
         m_pos = self.world_to_screen((self.missile.x, self.missile.y))
@@ -210,8 +214,8 @@ class Simulation:
         )
         self.draw_direction_arrow(self.pygame_surface, RED, m_pos)
 
-        pygame.draw.circle(self.pygame_surface, BLACK, a_pos, 6)
-        pygame.draw.circle(self.pygame_surface, RED, m_pos, 6)
+        pygame.draw.circle(self.pygame_surface, BLACK, a_pos, 5)
+        pygame.draw.circle(self.pygame_surface, RED, m_pos, 5)
 
         # Отрисовка текста (левая часть - управление)
         control_texts = [
@@ -294,9 +298,9 @@ class Simulation:
             self.keys_pressed.add(event.key)
         if event.type == MOUSEBUTTONDOWN:
             if event.button == 4:  # Колесо вверх
-                self.scale *= 1.1
+                self.scale = np.clip(self.scale * 1.1, 1, 100)
             elif event.button == 5:  # Колесо вниз
-                self.scale *= 0.9
+                self.scale = np.clip(self.scale * 0.9, 1, 100)
         elif event.type == KEYUP:
             if event.key in self.keys_pressed:
                 self.keys_pressed.remove(event.key)
@@ -339,7 +343,7 @@ def main():
     sim = Simulation()
     running = True
     while running:
-        dt = clock.tick(FPS) / sim_second
+        dt = clock.tick(FPS) / 1000
 
         for event in pygame.event.get():
             if event.type == QUIT:
