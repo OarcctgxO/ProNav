@@ -1,6 +1,6 @@
 from math import atan2, hypot, pi, sqrt, sin, cos
 from const import eps, air_drag
-from numpy import sign
+from numpy import sign, clip
 
 
 def norm_a(vx, vy, a): #раскладывает ускорение цели на составляющие так, что они перпендикулярны скорости
@@ -143,19 +143,29 @@ def ZEMAPN(target, pursuer, N):
     adaptive_N = N * min(1.0, pursuer_speed_predicted / 10.0)
     return (adaptive_N * ZEM_proj) / tgo_sq
 
-def Hybrid(target, pursuer, N):
-    x = target.x - pursuer.x
-    y = target.y - pursuer.y
-    vx = target.vx - pursuer.vx
-    vy = target.vy - pursuer.vy
-    r = hypot(x, y)
-    v = vc(x, y, vx, vy)
-    if r < eps:
-        return 0.0
-    if v < 0:
-        return PP(target, pursuer, N)
-    tgo = r / v
-    if tgo > 5:
-        return PP(target, pursuer, N)
-    if 5 >= tgo:
-        return ZEMPN(target, pursuer, N)
+def ZEMbad(target, pursuer, N):
+    xt, yt, vxt, vyt = target.x, target.y, target.vx, target.vy
+    xp, yp, vxp, vyp = pursuer.x, pursuer.y, pursuer.vx, pursuer.vy
+    #меняем систему координат
+    xt_shifted = xt - xp
+    yt_shifted = yt - yp
+    vp = hypot(vxp, vyp)
+    cost, sint = vyp / vp, -vxp / vp
+    xt_new = xt_shifted * cost + yt_shifted * sint
+    yt_new = -xt_shifted * sint + yt_shifted * cost
+    vxt_new = vxt * cost + vyt * sint
+    vyt_new = -vxt * sint + vyt * cost
+    vxp_new = 0
+    
+    xt, yt, vxt, vyt, xp, yp, vxp, vyp = xt_new, yt_new, vxt_new, vyt_new, 0.0, 0.0, vxp_new, vp
+    
+    if abs(vxt) < eps:
+        return TPN(target, pursuer, N)
+    tgo = - xt / vxt
+    tgo = clip(tgo, eps, 999999)
+    yc = yt + vyt * tgo
+    ZEM = yc - vyp * tgo
+    print(ZEM, tgo)
+    
+    a = N * ZEM * sign(xt) * sign(- xt / vxt) / (tgo**2 + eps)
+    return clip(a, -10, 10)

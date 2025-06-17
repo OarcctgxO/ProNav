@@ -26,7 +26,7 @@ class Simulation:
             K_3: laws.APN,
             K_4: laws.ZEMPN,
             K_5: laws.ZEMAPN,
-            K_6: laws.Hybrid,
+            K_6: laws.ZEMbad,
         }
         self.current_law = laws.PP
         self.scale = scale
