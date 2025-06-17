@@ -165,7 +165,6 @@ def ZEMbad(target, pursuer, N):
     tgo = clip(tgo, eps, 999999)
     yc = yt + vyt * tgo
     ZEM = yc - vyp * tgo
-    print(ZEM, tgo)
     
     a = N * ZEM * sign(xt) * sign(- xt / vxt) / (tgo**2 + eps)
     return clip(a, -10, 10)
