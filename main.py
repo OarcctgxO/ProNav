@@ -7,6 +7,7 @@ import warnings
 warnings.filterwarnings(
     "ignore", category=UserWarning, message="pkg_resources is deprecated"
 )
+import time
 import pygame
 from pygame.locals import *
 from OpenGL.GL import *
@@ -38,6 +39,7 @@ class Simulation:
     def __init__(self):
         self.running = False
         self.paused = False
+        self.current_fps = FPS
         self.laws = {
             K_1: laws.PP,
             K_2: laws.TPN,
@@ -234,6 +236,12 @@ class Simulation:
             f"Расстояние до цели: {int(math.hypot(self.airplane.x, self.airplane.y))}",
             f"Расстояние до ракеты: {int(math.hypot(self.airplane.x-self.missile.x, self.airplane.y-self.missile.y))}",
         ]
+        fps_text = f"FPS: {self.current_fps:.0f}"
+        fps_surface = font.render(fps_text, True, WHITE)
+        self.pygame_surface.blit(
+            fps_surface, 
+            (10, HEIGHT - fps_surface.get_height() - 10)
+        )
         for i, text in enumerate(distance_texts):
             color = GREEN if i == 0 else RED
             text_surface = font.render(text, True, color)
@@ -323,7 +331,7 @@ class Simulation:
         self.trajectory.append(
             ((self.airplane.x, self.airplane.y), (self.missile.x, self.missile.y))
         )
-        if len(self.trajectory) > 2000:
+        if len(self.trajectory) > 1000:
             self.trajectory.pop(0)
 
         if (
@@ -342,16 +350,27 @@ class Simulation:
 def main():
     sim = Simulation()
     running = True
+    clock = pygame.time.Clock()
+    target_fps = FPS
+
     while running:
-        dt = clock.tick(FPS) / 1000
+        frame_start = time.time()
 
         for event in pygame.event.get():
             if event.type == QUIT:
                 running = False
             sim.handle_input(event)
 
+        dt = 1.0 / sim.current_fps  # Используем current_fps из Simulation
         sim.update(dt)
         sim.draw()
+
+        # Рассчитываем текущий FPS
+        frame_time = time.time() - frame_start
+        if frame_time < 1.0 / target_fps:
+            clock.tick(target_fps)
+        else:
+            sim.current_fps = 1.0 / frame_time  # Обновляем FPS в Simulation
 
     pygame.quit()
 
