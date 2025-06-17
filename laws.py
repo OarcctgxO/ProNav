@@ -1,4 +1,4 @@
-from math import atan2, hypot, pi, sqrt, sin, cos
+from math import atan2, hypot, pi
 from const import eps, air_drag
 from numpy import sign, clip
 

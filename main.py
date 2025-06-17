@@ -99,11 +99,11 @@ class Simulation:
             math.hypot(
                 self.missile.x - self.airplane.x, self.missile.y - self.airplane.y
             )
-            < 0.1
+            < plane_size
         ):
             self.game_over = True
 
-        if math.hypot(self.airplane.x, self.airplane.y) < 1.0:
+        if math.hypot(self.airplane.x, self.airplane.y) < win_zone_r:
             self.win = True
             self.game_over = True
 

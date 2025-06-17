@@ -2,7 +2,7 @@ import pygame
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import math
-import numpy as np
+from const import *
 
 class Renderer:
     def __init__(self, width, height, land_image, scale):
@@ -150,10 +150,10 @@ class Renderer:
 
         # Отрисовка зоны победы
         center = self.world_to_screen((0, 0), airplane_pos, airplane_vel)
-        pygame.draw.circle(self.pygame_surface, (0, 255, 0), center, int(1 * self.scale), 2)
+        pygame.draw.circle(self.pygame_surface, (0, 255, 0), center, int(win_zone_r * self.scale), 2)
         
         center = self.world_to_screen(airplane_pos, airplane_pos, airplane_vel)
-        pygame.draw.circle(self.pygame_surface, (0, 0, 0), center, int(0.1 * self.scale), 1)
+        pygame.draw.circle(self.pygame_surface, (0, 0, 0), center, int(plane_size * self.scale), 1)
 
         # Отрисовка траекторий
         if len(trajectory) > 1:
