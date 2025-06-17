@@ -5,8 +5,8 @@ from noise import snoise2
 
 # Параметры генерации
 width, height = 2000, 2000
-scale = 300.0  # Масштаб для больших материков и морей
-seed = 6  # Сид генерации
+scale = 300.0
+seed = 6
 
 # Параметры высот для биомов
 deep_ocean_height = -0.2
@@ -16,17 +16,19 @@ plain_height = 0.15
 forest_height = 0.3
 mountain_height = 0.4
 
-octaves = 6  # Количество октав
+octaves = 6
 persistence = 0.5
 lacunarity = 2.0
 
-# Генерация карты высот с использованием numpy для ускорения
+# Дополнительный шум для цветовой вариативности
+color_noise_scale = 50.0
+color_noise_intensity = 0.20
+
 def generate_height_map(width, height, scale, octaves, persistence, lacunarity, seed):
     x = np.arange(width)
     y = np.arange(height)
     xx, yy = np.meshgrid(x, y)
     
-    # Векторизованный расчет шума
     height_map = np.vectorize(snoise2)(
         xx / scale,
         yy / scale,
@@ -39,8 +41,24 @@ def generate_height_map(width, height, scale, octaves, persistence, lacunarity, 
     )
     return height_map
 
-# Преобразование высот в цвета с более резкими переходами
-def height_to_color(height_map):
+def generate_color_variation(width, height, scale, intensity, seed):
+    x = np.arange(width)
+    y = np.arange(height)
+    xx, yy = np.meshgrid(x, y)
+    
+    noise = np.vectorize(snoise2)(
+        xx / scale,
+        yy / scale,
+        octaves=1,
+        persistence=0.5,
+        lacunarity=2.0,
+        repeatx=1024,
+        repeaty=1024,
+        base=seed + 1  # Другой seed для цветового шума
+    )
+    return noise * intensity
+
+def height_to_color(height_map, color_variation):
     color_map = np.zeros((*height_map.shape, 3), dtype=np.uint8)
     
     # Маски для каждого биома
@@ -52,61 +70,57 @@ def height_to_color(height_map):
     mountain_mask = (height_map >= forest_height) & (height_map < mountain_height)
     snow_mountain_mask = height_map >= mountain_height
     
-    # Базовые цвета для биомов
-    color_map[deep_ocean_mask] = [0, 0, 100]          # Глубокий океан
-    color_map[ocean_mask] = [0, 0, 200]               # Океан
-    color_map[beach_mask] = [200, 200, 100]           # Пляж
-    color_map[plain_mask] = [100, 200, 100]           # Равнина
-    color_map[forest_mask] = [34, 139, 34]            # Лес
-    color_map[mountain_mask] = [60, 60, 60]           # Горы
-    color_map[snow_mountain_mask] = [240, 240, 240]   # Заснеженные горы
+    # Базовые цвета для биомов с вариациями
+    def apply_variation(base_color, mask, variation):
+        color = np.array(base_color, dtype=np.float32)
+        # Применяем вариацию (темнее-светлее)
+        variation_factor = 1.0 + variation[mask] * 0.5  # От 0.85 до 1.15
+        varied_color = color * variation_factor[..., np.newaxis]
+        # Ограничиваем значения 0-255
+        return np.clip(varied_color, 0, 255).astype(np.uint8)
     
-    # Добавляем небольшие плавные переходы только между соседними биомами
-    transition_width = 0.02  # Ширина перехода (меньше значение = резче переход)
+    # Применяем цветовые вариации к каждому биому
+    color_map[deep_ocean_mask] = apply_variation([0, 0, 100], deep_ocean_mask, color_variation)
+    color_map[ocean_mask] = apply_variation([0, 0, 200], ocean_mask, color_variation)
+    color_map[beach_mask] = apply_variation([200, 200, 100], beach_mask, color_variation)
+    color_map[plain_mask] = apply_variation([100, 200, 100], plain_mask, color_variation)
+    color_map[forest_mask] = apply_variation([34, 139, 34], forest_mask, color_variation)
+    color_map[mountain_mask] = apply_variation([60, 60, 60], mountain_mask, color_variation)
+    color_map[snow_mountain_mask] = apply_variation([240, 240, 240], snow_mountain_mask, color_variation)
     
-    # Переход между глубоким океаном и океаном
-    transition_mask = (height_map >= deep_ocean_height - transition_width) & (height_map < deep_ocean_height + transition_width)
-    factor = (height_map[transition_mask] - (deep_ocean_height - transition_width)) / (2 * transition_width)
-    color_map[transition_mask] = np.array([0, 0, 100]) * (1 - factor[..., np.newaxis]) + np.array([0, 0, 200]) * factor[..., np.newaxis]
+    # Плавные переходы между биомами
+    transition_width = 0.02
     
-    # Переход между океаном и пляжем
-    transition_mask = (height_map >= ocean_height - transition_width) & (height_map < ocean_height + transition_width)
-    factor = (height_map[transition_mask] - (ocean_height - transition_width)) / (2 * transition_width)
-    color_map[transition_mask] = np.array([0, 0, 200]) * (1 - factor[..., np.newaxis]) + np.array([200, 200, 100]) * factor[..., np.newaxis]
+    transitions = [
+        (deep_ocean_height, [0, 0, 100], [0, 0, 200]),
+        (ocean_height, [0, 0, 200], [200, 200, 100]),
+        (beach_height, [200, 200, 100], [100, 200, 100]),
+        (plain_height, [100, 200, 100], [34, 139, 34]),
+        (forest_height, [34, 139, 34], [60, 60, 60]),
+        (mountain_height, [60, 60, 60], [240, 240, 240])
+    ]
     
-    # Переход между пляжем и равниной
-    transition_mask = (height_map >= beach_height - transition_width) & (height_map < beach_height + transition_width)
-    factor = (height_map[transition_mask] - (beach_height - transition_width)) / (2 * transition_width)
-    color_map[transition_mask] = np.array([200, 200, 100]) * (1 - factor[..., np.newaxis]) + np.array([100, 200, 100]) * factor[..., np.newaxis]
-    
-    # Переход между равниной и лесом
-    transition_mask = (height_map >= plain_height - transition_width) & (height_map < plain_height + transition_width)
-    factor = (height_map[transition_mask] - (plain_height - transition_width)) / (2 * transition_width)
-    color_map[transition_mask] = np.array([100, 200, 100]) * (1 - factor[..., np.newaxis]) + np.array([34, 139, 34]) * factor[..., np.newaxis]
-    
-    # Переход между лесом и горами
-    transition_mask = (height_map >= forest_height - transition_width) & (height_map < forest_height + transition_width)
-    factor = (height_map[transition_mask] - (forest_height - transition_width)) / (2 * transition_width)
-    color_map[transition_mask] = np.array([34, 139, 34]) * (1 - factor[..., np.newaxis]) + np.array([60, 60, 60]) * factor[..., np.newaxis]
-    
-    # Переход между горами и заснеженными горами
-    transition_mask = (height_map >= mountain_height - transition_width) & (height_map < mountain_height + transition_width)
-    factor = (height_map[transition_mask] - (mountain_height - transition_width)) / (2 * transition_width)
-    color_map[transition_mask] = np.array([60, 60, 60]) * (1 - factor[..., np.newaxis]) + np.array([240, 240, 240]) * factor[..., np.newaxis]
+    for height_val, color1, color2 in transitions:
+        transition_mask = (height_map >= height_val - transition_width) & (height_map < height_val + transition_width)
+        if np.any(transition_mask):
+            factor = (height_map[transition_mask] - (height_val - transition_width)) / (2 * transition_width)
+            base_color = np.array(color1) * (1 - factor[..., np.newaxis]) + np.array(color2) * factor[..., np.newaxis]
+            # Применяем вариацию к переходной зоне
+            variation_factor = 1.0 + color_variation[transition_mask] * 0.5
+            varied_color = base_color * variation_factor[..., np.newaxis]
+            color_map[transition_mask] = np.clip(varied_color, 0, 255).astype(np.uint8)
     
     return color_map
 
-# Генерация высот и цветов
-height_map = generate_height_map(
-    width, height, scale, octaves, persistence, lacunarity, seed
-)
-color_map = height_to_color(height_map)
+# Генерация данных
+height_map = generate_height_map(width, height, scale, octaves, persistence, lacunarity, seed)
+color_variation = generate_color_variation(width, height, color_noise_scale, color_noise_intensity, seed)
+color_map = height_to_color(height_map, color_variation)
 
-# Сохранение изображения
+# Сохранение и отображение
 image = Image.fromarray(color_map)
 image.save("land.png")
 
-# Отображение изображения
 plt.imshow(color_map)
-plt.axis("off")  # Скрыть оси
+plt.axis("off")
 plt.show()
