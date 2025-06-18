@@ -181,6 +181,7 @@ class Renderer:
             "[SPACE] - старт/пауза",
             "[R] - сброс",
             "[AD] - управление самолетом",
+            "[Esc] - выход"
         ]
         for i, text in enumerate(control_texts):
             text_surface = self.font.render(text, True, (255, 255, 255))

@@ -5,15 +5,16 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, message="pkg_resources is deprecated")
 import time
 import pygame
+import sys
 from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import math
+import numpy as np
+from render import Renderer
 from bodies import *
 from const import *
 import laws
-import numpy as np
-from render import Renderer
 
 class Simulation:
     def __init__(self):
@@ -33,8 +34,8 @@ class Simulation:
         
         # Инициализация рендерера
         pygame.init()
-        self.width, self.height = 1600, 900
-        screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF | pygame.OPENGL)
+        self.width, self.height = 1920, 1080
+        screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF | pygame.OPENGL | pygame.FULLSCREEN)
         land_image = pygame.image.load("land.png").convert_alpha()
         pygame.display.set_caption("Ракетная симуляция")
         
@@ -62,6 +63,9 @@ class Simulation:
             if event.key == K_r:
                 self.reset()
                 self.running = False
+            if event.key == K_ESCAPE:
+                pygame.quit()
+                sys.exit()
             self.keys_pressed.add(event.key)
         if event.type == MOUSEBUTTONDOWN:
             if event.button == 4:  # Колесо вверх
