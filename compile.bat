@@ -1,2 +1,2 @@
 color 2
-python -m PyInstaller --onefile --noconsole main.py
+python -m PyInstaller --onefile --add-data "land.png;." --noconsole main.py

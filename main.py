@@ -6,6 +6,7 @@ warnings.filterwarnings("ignore", category=UserWarning, message="pkg_resources i
 import time
 import pygame
 import sys
+from PIL import Image
 from pygame.locals import (
     K_1, K_2, K_3, K_4, K_5, K_6,
     K_a, K_d, K_SPACE, K_r, K_ESCAPE,
@@ -17,6 +18,29 @@ from render import Renderer
 from bodies import *
 from const import *
 import laws
+
+def load_image():
+    """Загружает изображение land.png из директории скрипта или EXE."""
+    try:
+        # Определяем базовый путь
+        if getattr(sys, 'frozen', False):
+            # Для собранного EXE
+            base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+        else:
+            # Для режима разработки
+            base_path = os.path.dirname(os.path.abspath(__file__))
+        
+        # Формируем полный путь к изображению
+        image_path = os.path.join(base_path, 'land.png')
+        
+        # Проверяем существование файла перед загрузкой
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Файл 'land.png' не найден по пути: {image_path}")
+        
+        return image_path
+        
+    except Exception as e:
+        raise RuntimeError(f"Ошибка загрузки изображения: {str(e)}")
 
 class Simulation:
     def __init__(self):
@@ -38,7 +62,7 @@ class Simulation:
         pygame.init()
         self.width, self.height = 1920, 1080
         screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF | pygame.OPENGL | pygame.FULLSCREEN)
-        land_image = pygame.image.load("land.png").convert_alpha()
+        land_image = pygame.image.load(load_image()).convert_alpha()
         pygame.display.set_caption("Ракетная симуляция")
         
         self.renderer = Renderer(self.width, self.height, land_image, self.scale)
