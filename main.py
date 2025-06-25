@@ -6,10 +6,12 @@ warnings.filterwarnings("ignore", category=UserWarning, message="pkg_resources i
 import time
 import pygame
 import sys
-from pygame.locals import *
-from OpenGL.GL import *
-from OpenGL.GLU import *
-import math
+from pygame.locals import (
+    K_1, K_2, K_3, K_4, K_5, K_6,
+    K_a, K_d, K_SPACE, K_r, K_ESCAPE,
+    QUIT, KEYDOWN, KEYUP, MOUSEBUTTONDOWN,
+)
+from math import hypot
 import numpy as np
 from render import Renderer
 from bodies import *
@@ -100,19 +102,18 @@ class Simulation:
             self.trajectory.pop(0)
 
         if (
-            math.hypot(
+            hypot(
                 self.missile.x - self.airplane.x, self.missile.y - self.airplane.y
             )
             < plane_size
         ):
             self.game_over = True
 
-        if math.hypot(self.airplane.x, self.airplane.y) < win_zone_r:
+        if hypot(self.airplane.x, self.airplane.y) < win_zone_r:
             self.win = True
             self.game_over = True
 
     def draw(self):
-        # Подготавливаем данные для рендерера
         render_data = {
             "airplane_pos": (self.airplane.x, self.airplane.y),
             "airplane_vel": (self.airplane.vx, self.airplane.vy),
@@ -120,8 +121,8 @@ class Simulation:
             "trajectory": self.trajectory,
             "current_law_name": self.current_law.__name__,
             "distances": [
-                f"Расстояние до цели: {int(math.hypot(self.airplane.x, self.airplane.y))}",
-                f"Расстояние до ракеты: {int(math.hypot(self.airplane.x-self.missile.x, self.airplane.y-self.missile.y))}",
+                f"Расстояние до цели: {int(hypot(self.airplane.x, self.airplane.y))}",
+                f"Расстояние до ракеты: {int(hypot(self.airplane.x-self.missile.x, self.airplane.y-self.missile.y))}",
             ],
             "current_fps": self.current_fps,
             "game_over": self.game_over,
@@ -152,7 +153,7 @@ def main():
         if frame_time < 1.0 / target_fps:
             clock.tick(target_fps)
         else:
-            sim.current_fps = 1.0 / frame_time
+            sim.current_fps = int(1.0 / frame_time)
 
     pygame.quit()
 

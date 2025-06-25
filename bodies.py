@@ -1,10 +1,8 @@
 from math import hypot
-from const import eps, air_drag
+from const import eps, air_drag, acceleration_pressed
 from laws import norm_a
-from filter import AccelerationFilter
 from numpy import clip
 
-from main import acceleration_pressed
 class airplane:
     def __init__(self, x, y, vx, vy):
         self.x = x  #координата x
@@ -51,11 +49,10 @@ class missile(airplane):    #ракета почти ничем не отлич�
         self.law = law  #закон наведения на цель
         self.target = target    #сама цель
         self.N = N  #коэффициент пропорциональности наведения
-        self.filter = AccelerationFilter(alpha)
         
     def calc_move(self, dt):
         #считаем ускорение для перехвата цели (по одному из законов). ускорение в 2 раза больше максимального ускорения самолета
-        self.a = clip(self.law(self.target, self, self.N), -2* acceleration_pressed, 2* acceleration_pressed)
+        self.a = clip(self.law(self.target, self, self.N, dt), -2* acceleration_pressed, 2* acceleration_pressed)
         if self.max_speed > eps:
             self.max_speed -= hypot(self.ax, self.ay) * dt * air_drag   #замедляемся пропорционально боковому усилию поворота
         else:

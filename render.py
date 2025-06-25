@@ -1,6 +1,6 @@
 import pygame
-from OpenGL.GL import *
-from OpenGL.GLU import *
+from OpenGL.GL import * # type: ignore
+from OpenGL.GLU import * # type: ignore
 import math
 from const import *
 
@@ -27,7 +27,7 @@ class Renderer:
         glBindTexture(GL_TEXTURE_2D, self.land_texture)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-        texture_data = pygame.image.tostring(land_image, "RGBA", 1)
+        texture_data = pygame.image.tostring(land_image, "RGBA", 1) # type: ignore
         glTexImage2D(
             GL_TEXTURE_2D,
             0,
@@ -73,7 +73,7 @@ class Renderer:
         return (self.width // 2 + int(sx), (self.height // 2 - int(sy)))
 
     def draw_land(self, airplane_pos, airplane_vel):
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT) # type: ignore
         glLoadIdentity()
 
         vx, vy = airplane_vel[0], airplane_vel[1]
