@@ -60,8 +60,8 @@ class Simulation:
         
         # Инициализация рендерера
         pygame.init()
-        self.width, self.height = 1920, 1080
-        screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF | pygame.OPENGL | pygame.FULLSCREEN)
+        self.width, self.height = 1600, 900
+        screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF | pygame.OPENGL) #| pygame.FULLSCREEN)
         land_image = pygame.image.load(load_image()).convert_alpha()
         pygame.display.set_caption("Ракетная симуляция")
         

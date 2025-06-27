@@ -6,14 +6,17 @@ import math
 import freetype
 from const import *
 
+
 def flip_y(y, height):
     return height - y
+
 
 class Renderer:
     def __init__(self, width, height, land_image, scale):
         self.width = width
         self.height = height
         self.scale = scale
+        self.glyph_cache = {}  # Кеш для глифов
 
         # Инициализация OpenGL
         glEnable(GL_TEXTURE_2D)
@@ -57,8 +60,8 @@ class Renderer:
         # Поверхность для элементов интерфейса
         self.pygame_surface = pygame.Surface((width, height), pygame.SRCALPHA)
         try:
-            self.face = freetype.Face("C:\\Windows\\Fonts\\arial.ttf")
-            self.face.set_char_size(48*64)
+            self.face = freetype.Face("C:\\Windows\\Fonts\\impact.ttf")
+            self.face.set_char_size(24 * 64)
         except:
             self.face = None
         self.interface_pixels = (GLubyte * (width * height * 4))()
@@ -79,14 +82,26 @@ class Renderer:
 
         glBindTexture(GL_TEXTURE_2D, self.land_texture)
         glBegin(GL_QUADS)
-        glTexCoord2f(0, 1); glVertex2f(-1000, -1000)
-        glTexCoord2f(1, 1); glVertex2f(1000, -1000)
-        glTexCoord2f(1, 0); glVertex2f(1000, 1000)
-        glTexCoord2f(0, 0); glVertex2f(-1000, 1000)
+        glTexCoord2f(0, 1)
+        glVertex2f(-1000, -1000)
+        glTexCoord2f(1, 1)
+        glVertex2f(1000, -1000)
+        glTexCoord2f(1, 0)
+        glVertex2f(1000, 1000)
+        glTexCoord2f(0, 0)
+        glVertex2f(-1000, 1000)
         glEnd()
         glPopMatrix()
 
-    def draw_direction_arrow(self, surface, color, target_pos, arrow_length=20, arrow_head_size=5, line_width=2):
+    def draw_direction_arrow(
+        self,
+        surface,
+        color,
+        target_pos,
+        arrow_length=20,
+        arrow_head_size=5,
+        line_width=2,
+    ):
         cx, cy = self.width / 2, self.height / 2
         tx, ty = target_pos
         dx, dy = tx - cx, ty - cy
@@ -101,17 +116,26 @@ class Renderer:
         ang = math.atan2(dy, dx)
         pts = [
             (ex, ey),
-            (ex - arrow_head_size * math.cos(ang - math.pi / 6),
-             ey - arrow_head_size * math.sin(ang - math.pi / 6)),
-            (ex - arrow_head_size * math.cos(ang + math.pi / 6),
-             ey - arrow_head_size * math.sin(ang + math.pi / 6)),
+            (
+                ex - arrow_head_size * math.cos(ang - math.pi / 6),
+                ey - arrow_head_size * math.sin(ang - math.pi / 6),
+            ),
+            (
+                ex - arrow_head_size * math.cos(ang + math.pi / 6),
+                ey - arrow_head_size * math.sin(ang + math.pi / 6),
+            ),
         ]
         self.draw_polygon(pts, color)
 
     def draw_circle(self, center, radius, color, width):
         """Draw a circle using OpenGL"""
         glDisable(GL_TEXTURE_2D)
-        glColor4f(color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0 if len(color) > 3 else 1.0)
+        glColor4f(
+            color[0] / 255.0,
+            color[1] / 255.0,
+            color[2] / 255.0,
+            color[3] / 255.0 if len(color) > 3 else 1.0,
+        )
         glBegin(GL_TRIANGLE_FAN if width <= 1 else GL_LINE_LOOP)
         for i in range(32):
             angle = 2.0 * math.pi * i / 32
@@ -125,7 +149,12 @@ class Renderer:
     def draw_line(self, start, end, color, width):
         """Draw a line using OpenGL"""
         glDisable(GL_TEXTURE_2D)
-        glColor4f(color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0 if len(color) > 3 else 1.0)
+        glColor4f(
+            color[0] / 255.0,
+            color[1] / 255.0,
+            color[2] / 255.0,
+            color[3] / 255.0 if len(color) > 3 else 1.0,
+        )
         glLineWidth(width)
         glBegin(GL_LINES)
         glVertex2f(start[0], start[1])
@@ -139,7 +168,12 @@ class Renderer:
         if len(points) < 2:
             return
         glDisable(GL_TEXTURE_2D)
-        glColor4f(color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0 if len(color) > 3 else 1.0)
+        glColor4f(
+            color[0] / 255.0,
+            color[1] / 255.0,
+            color[2] / 255.0,
+            color[3] / 255.0 if len(color) > 3 else 1.0,
+        )
         glLineWidth(width)
         glBegin(GL_LINE_STRIP)
         for point in points:
@@ -151,7 +185,12 @@ class Renderer:
     def draw_polygon(self, points, color):
         """Draw a filled polygon using OpenGL"""
         glDisable(GL_TEXTURE_2D)
-        glColor4f(color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0 if len(color) > 3 else 1.0)
+        glColor4f(
+            color[0] / 255.0,
+            color[1] / 255.0,
+            color[2] / 255.0,
+            color[3] / 255.0 if len(color) > 3 else 1.0,
+        )
         glBegin(GL_POLYGON)
         for point in points:
             glVertex2f(point[0], point[1])
@@ -160,48 +199,104 @@ class Renderer:
         glColor4f(1.0, 1.0, 1.0, 1.0)
 
     def render_text(self, text, pos, color):
-        """Render text using freetype and OpenGL"""
+        """Render text using freetype and OpenGL with glyph caching"""
         if not self.face:
             return
-        self.face.set_pixel_sizes(0, 2)
-        slot = self.face.glyph
+        
+        # Сохраняем текущее состояние OpenGL
+        prev_texture_enabled = glIsEnabled(GL_TEXTURE_2D)
+        prev_color = (GLfloat * 4)()
+        glGetFloatv(GL_CURRENT_COLOR, prev_color)
+        
+        # Установка цвета текста
+        glColor4f(
+            color[0] / 255.0,
+            color[1] / 255.0,
+            color[2] / 255.0,
+            color[3] / 255.0 if len(color) > 3 else 1.0,
+        )
+        
         x, y = pos
-        y = flip_y(y, self.height)  # Flip y for OpenGL
-
+        y = flip_y(y, self.height)  # Коррекция координаты Y
+        
+        # Активируем текстуру
+        glEnable(GL_TEXTURE_2D)
+        
         for char in text:
-            self.face.load_char(char)
-            bitmap = slot.bitmap
-
-            w, h = bitmap.width, bitmap.rows
-            x0, y0 = slot.bitmap_left, slot.bitmap_top
-            y0 = flip_y(y0, self.height)  # Flip y for OpenGL
-
-            data = bitmap.buffer
-            texture_data = (GLubyte * (2 * w * h))()
-
-            for j in range(h):
-                for i in range(w):
-                    byte = data[j * w + i]
-                    texture_data[2 * (j * w + i)] = texture_data[2 * (j * w + i) + 1] = byte
-
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, w, h, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, texture_data)
-
-            glEnable(GL_TEXTURE_2D)
-            glBindTexture(GL_TEXTURE_2D, self.interface_texture)
+            # Используем кешированные глифы или создаем новые
+            if char not in self.glyph_cache:
+                self.face.load_char(char)
+                slot = self.face.glyph
+                bitmap = slot.bitmap
+                w, h = bitmap.width, bitmap.rows
+                
+                # Создаем текстуру для глифа
+                texture_id = glGenTextures(1)
+                glBindTexture(GL_TEXTURE_2D, texture_id)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+                
+                # Конвертируем данные в формат GL_LUMINANCE_ALPHA
+                data = bitmap.buffer
+                texture_data = (GLubyte * (2 * w * h))()
+                for j in range(h):
+                    for i in range(w):
+                        byte = data[j * w + i]
+                        texture_data[2 * (j * w + i)] = 255  # Luminance (белый)
+                        texture_data[2 * (j * w + i) + 1] = byte  # Alpha
+                
+                # Загружаем текстуру
+                glTexImage2D(
+                    GL_TEXTURE_2D,
+                    0,
+                    GL_LUMINANCE_ALPHA,
+                    w,
+                    h,
+                    0,
+                    GL_LUMINANCE_ALPHA,
+                    GL_UNSIGNED_BYTE,
+                    texture_data,
+                )
+                
+                # Сохраняем глиф в кеше
+                self.glyph_cache[char] = {
+                    'texture': texture_id,
+                    'width': w,
+                    'height': h,
+                    'left': slot.bitmap_left,
+                    'top': slot.bitmap_top,
+                    'advance': slot.advance.x >> 6
+                }
+            
+            # Получаем глиф из кеша
+            glyph = self.glyph_cache[char]
+            w = glyph['width']
+            h = glyph['height']
+            
+            # Рендерим глиф
+            glBindTexture(GL_TEXTURE_2D, glyph['texture'])
             glPushMatrix()
-            glTranslatef(x + x0, y - y0, 0)
-            glPixelZoom(1, -1)
-
+            glTranslatef(x + glyph['left'], y + glyph['top'] - h, 0)
+            
             glBegin(GL_QUADS)
-            glTexCoord2f(0, 0); glVertex2f(0, h)
-            glTexCoord2f(1, 0); glVertex2f(w, h)
-            glTexCoord2f(1, 1); glVertex2f(w, 0)
             glTexCoord2f(0, 1); glVertex2f(0, 0)
+            glTexCoord2f(1, 1); glVertex2f(w, 0)
+            glTexCoord2f(1, 0); glVertex2f(w, h)
+            glTexCoord2f(0, 0); glVertex2f(0, h)
             glEnd()
-            glDisable(GL_TEXTURE_2D)
+            
             glPopMatrix()
-
-            x += slot.advance.x >> 6
+            x += glyph['advance']
+        
+        # Восстанавливаем состояние OpenGL
+        if prev_texture_enabled:
+            glEnable(GL_TEXTURE_2D)
+        else:
+            glDisable(GL_TEXTURE_2D)
+        
+        glColor4fv(prev_color)
 
     def draw_pygame_elements(self, data):
         # Clear and prepare for interface drawing
@@ -235,7 +330,10 @@ class Renderer:
             dyr = dx * s + dy * c
             sx = int(dxr * self.scale)
             sy = int(dyr * self.scale)
-            return (int(self.width / 2 + sx), flip_y(int(self.height / 2 - sy), self.height))
+            return (
+                int(self.width / 2 + sx),
+                flip_y(int(self.height / 2 - sy), self.height),
+            )
 
         # Зона победы
         center0 = w2s((0, 0))
@@ -267,7 +365,7 @@ class Renderer:
             "[SPACE] - старт/пауза",
             "[R] - сброс",
             "[AD] - управление самолетом",
-            "[Esc] - выход"
+            "[Esc] - выход",
         ]
         for i, txt in enumerate(ctrl):
             self.render_text(txt, (10, 10 + i * 25), (255, 255, 255, 255))
