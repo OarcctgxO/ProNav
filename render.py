@@ -1,8 +1,13 @@
 import pygame
 from OpenGL.GL import *  # type: ignore
 from OpenGL.GLU import *  # type: ignore
+from OpenGL.GLUT import *  # type: ignore
 import math
+import freetype
 from const import *
+
+def flip_y(y, height):
+    return height - y
 
 class Renderer:
     def __init__(self, width, height, land_image, scale):
@@ -51,7 +56,12 @@ class Renderer:
 
         # Поверхность для элементов интерфейса
         self.pygame_surface = pygame.Surface((width, height), pygame.SRCALPHA)
-        self.font = pygame.font.SysFont("Impact", 20)
+        try:
+            self.face = freetype.Face("C:\\Windows\\Fonts\\arial.ttf")
+            self.face.set_char_size(48*64)
+        except:
+            self.face = None
+        self.interface_pixels = (GLubyte * (width * height * 4))()
 
     def draw_land(self, airplane_pos, airplane_vel):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # type: ignore
@@ -87,7 +97,7 @@ class Renderer:
         nx, ny = dx / dist, dy / dist
         ex, ey = cx + nx * arrow_length, cy + ny * arrow_length
 
-        pygame.draw.line(surface, color, (cx, cy), (ex, ey), line_width)
+        self.draw_line((cx, cy), (ex, ey), color, line_width)
         ang = math.atan2(dy, dx)
         pts = [
             (ex, ey),
@@ -96,10 +106,106 @@ class Renderer:
             (ex - arrow_head_size * math.cos(ang + math.pi / 6),
              ey - arrow_head_size * math.sin(ang + math.pi / 6)),
         ]
-        pygame.draw.polygon(surface, color, pts)
+        self.draw_polygon(pts, color)
+
+    def draw_circle(self, center, radius, color, width):
+        """Draw a circle using OpenGL"""
+        glDisable(GL_TEXTURE_2D)
+        glColor4f(color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0 if len(color) > 3 else 1.0)
+        glBegin(GL_TRIANGLE_FAN if width <= 1 else GL_LINE_LOOP)
+        for i in range(32):
+            angle = 2.0 * math.pi * i / 32
+            x = center[0] + radius * math.cos(angle)
+            y = center[1] + radius * math.sin(angle)
+            glVertex2f(x, y)
+        glEnd()
+        glEnable(GL_TEXTURE_2D)
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+
+    def draw_line(self, start, end, color, width):
+        """Draw a line using OpenGL"""
+        glDisable(GL_TEXTURE_2D)
+        glColor4f(color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0 if len(color) > 3 else 1.0)
+        glLineWidth(width)
+        glBegin(GL_LINES)
+        glVertex2f(start[0], start[1])
+        glVertex2f(end[0], end[1])
+        glEnd()
+        glEnable(GL_TEXTURE_2D)
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+
+    def draw_lines(self, points, color, width):
+        """Draw connected lines using OpenGL"""
+        if len(points) < 2:
+            return
+        glDisable(GL_TEXTURE_2D)
+        glColor4f(color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0 if len(color) > 3 else 1.0)
+        glLineWidth(width)
+        glBegin(GL_LINE_STRIP)
+        for point in points:
+            glVertex2f(point[0], point[1])
+        glEnd()
+        glEnable(GL_TEXTURE_2D)
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+
+    def draw_polygon(self, points, color):
+        """Draw a filled polygon using OpenGL"""
+        glDisable(GL_TEXTURE_2D)
+        glColor4f(color[0]/255.0, color[1]/255.0, color[2]/255.0, color[3]/255.0 if len(color) > 3 else 1.0)
+        glBegin(GL_POLYGON)
+        for point in points:
+            glVertex2f(point[0], point[1])
+        glEnd()
+        glEnable(GL_TEXTURE_2D)
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+
+    def render_text(self, text, pos, color):
+        """Render text using freetype and OpenGL"""
+        if not self.face:
+            return
+        self.face.set_pixel_sizes(0, 2)
+        slot = self.face.glyph
+        x, y = pos
+        y = flip_y(y, self.height)  # Flip y for OpenGL
+
+        for char in text:
+            self.face.load_char(char)
+            bitmap = slot.bitmap
+
+            w, h = bitmap.width, bitmap.rows
+            x0, y0 = slot.bitmap_left, slot.bitmap_top
+            y0 = flip_y(y0, self.height)  # Flip y for OpenGL
+
+            data = bitmap.buffer
+            texture_data = (GLubyte * (2 * w * h))()
+
+            for j in range(h):
+                for i in range(w):
+                    byte = data[j * w + i]
+                    texture_data[2 * (j * w + i)] = texture_data[2 * (j * w + i) + 1] = byte
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE_ALPHA, w, h, 0, GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, texture_data)
+
+            glEnable(GL_TEXTURE_2D)
+            glBindTexture(GL_TEXTURE_2D, self.interface_texture)
+            glPushMatrix()
+            glTranslatef(x + x0, y - y0, 0)
+            glPixelZoom(1, -1)
+
+            glBegin(GL_QUADS)
+            glTexCoord2f(0, 0); glVertex2f(0, h)
+            glTexCoord2f(1, 0); glVertex2f(w, h)
+            glTexCoord2f(1, 1); glVertex2f(w, 0)
+            glTexCoord2f(0, 1); glVertex2f(0, 0)
+            glEnd()
+            glDisable(GL_TEXTURE_2D)
+            glPopMatrix()
+
+            x += slot.advance.x >> 6
 
     def draw_pygame_elements(self, data):
-        self.pygame_surface.fill((0, 0, 0, 0))
+        # Clear and prepare for interface drawing
+        glLoadIdentity()
 
         ap = data["airplane_pos"]
         av = data["airplane_vel"]
@@ -129,30 +235,30 @@ class Renderer:
             dyr = dx * s + dy * c
             sx = int(dxr * self.scale)
             sy = int(dyr * self.scale)
-            return (int(self.width / 2 + sx), int(self.height / 2 - sy))
+            return (int(self.width / 2 + sx), flip_y(int(self.height / 2 - sy), self.height))
 
         # Зона победы
         center0 = w2s((0, 0))
-        pygame.draw.circle(self.pygame_surface, (0, 255, 0), center0, int(win_zone_r * self.scale), 2)
+        self.draw_circle(center0, int(win_zone_r * self.scale), (0, 255, 0, 255), 2)
         # Самолет
         center1 = w2s(ap)
-        pygame.draw.circle(self.pygame_surface, (0, 0, 0), center1, int(plane_size * self.scale), 1)
+        self.draw_circle(center1, int(plane_size * self.scale), (0, 0, 0, 255), 1)
 
         # Траектории
         if len(traj) > 1:
             air_pts = [w2s(a_p) for a_p, _ in traj]
             miss_pts = [w2s(m_p) for _, m_p in traj]
-            pygame.draw.lines(self.pygame_surface, (0, 0, 0), False, air_pts, 1)
-            pygame.draw.lines(self.pygame_surface, (255, 0, 0), False, miss_pts, 1)
+            self.draw_lines(air_pts, (0, 0, 0, 255), 1)
+            self.draw_lines(miss_pts, (255, 0, 0, 255), 1)
 
         # Направляющие стрелки
         m_screen = w2s(mp)
-        self.draw_direction_arrow(self.pygame_surface, (0, 255, 0), w2s((0, 0)))
-        self.draw_direction_arrow(self.pygame_surface, (255, 0, 0), m_screen)
+        self.draw_direction_arrow(None, (0, 255, 0), w2s((0, 0)))
+        self.draw_direction_arrow(None, (255, 0, 0), m_screen)
 
         # Маркеры
-        pygame.draw.circle(self.pygame_surface, (0, 0, 0), w2s(ap), 5)
-        pygame.draw.circle(self.pygame_surface, (255, 0, 0), m_screen, 5)
+        self.draw_circle(w2s(ap), 5, (0, 0, 0, 255), 1)
+        self.draw_circle(m_screen, 5, (255, 0, 0, 255), 1)
 
         # Текстовая часть (лево)
         ctrl = [
@@ -164,50 +270,26 @@ class Renderer:
             "[Esc] - выход"
         ]
         for i, txt in enumerate(ctrl):
-            surf = self.font.render(txt, True, (255, 255, 255))
-            self.pygame_surface.blit(surf, (10, 10 + i * 25))
+            self.render_text(txt, (10, 10 + i * 25), (255, 255, 255, 255))
 
         # Текст (расстояния, право)
         for i, txt in enumerate(dists):
             col = (0, 255, 0) if i == 0 else (255, 0, 0)
-            surf = self.font.render(txt, True, col)
-            x = self.width - surf.get_width() - 10
-            self.pygame_surface.blit(surf, (x, 10 + i * 25))
+            self.render_text(txt, (self.width - 300, 10 + i * 25), col)
 
         # FPS
-        fps_s = self.font.render(f"FPS: {fps:.0f}", True, (255, 255, 255))
-        self.pygame_surface.blit(fps_s, (10, self.height - fps_s.get_height() - 10))
+        fps_text = f"FPS: {fps:.0f}"
+        self.render_text(fps_text, (10, self.height - 30), (255, 255, 255, 255))
 
         # Game Over
         if game_over:
             msg = "Победа!" if win else "Цель поражена!"
             clr = (0, 255, 0) if win else (255, 0, 0)
-            go_s = self.font.render(msg, True, clr)
-            x = self.width / 2 - go_s.get_width() / 2
-            y = self.height / 2
-            self.pygame_surface.blit(go_s, (x, y))
-
-        # Обновляем текстуру интерфейса
-        tex_data = pygame.image.tostring(self.pygame_surface, "RGBA", False)
-        glBindTexture(GL_TEXTURE_2D, self.interface_texture)
-        glTexSubImage2D(
-            GL_TEXTURE_2D, 0, 0, 0, self.width, self.height,
-            GL_RGBA, GL_UNSIGNED_BYTE, tex_data
-        )
+            self.render_text(msg, (self.width / 2 - 50, self.height / 2), clr)
 
     def draw(self, data):
         self.draw_land(data["airplane_pos"], data["airplane_vel"])
         self.draw_pygame_elements(data)
-
-        glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, self.interface_texture)
-        glBegin(GL_QUADS)
-        glTexCoord2f(0, 1); glVertex2f(0, 0)
-        glTexCoord2f(1, 1); glVertex2f(self.width, 0)
-        glTexCoord2f(1, 0); glVertex2f(self.width, self.height)
-        glTexCoord2f(0, 0); glVertex2f(0, self.height)
-        glEnd()
-
         pygame.display.flip()
 
     def set_scale(self, scale):
