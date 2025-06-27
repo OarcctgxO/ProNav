@@ -199,16 +199,13 @@ class Renderer:
         glColor4f(1.0, 1.0, 1.0, 1.0)
 
     def render_text(self, text, pos, color):
-        """Render text using freetype and OpenGL with glyph caching"""
         if not self.face:
             return
-        
-        # Сохраняем текущее состояние OpenGL
+            
         prev_texture_enabled = glIsEnabled(GL_TEXTURE_2D)
         prev_color = (GLfloat * 4)()
         glGetFloatv(GL_CURRENT_COLOR, prev_color)
         
-        # Установка цвета текста
         glColor4f(
             color[0] / 255.0,
             color[1] / 255.0,
@@ -217,37 +214,53 @@ class Renderer:
         )
         
         x, y = pos
-        y = flip_y(y, self.height)  # Коррекция координаты Y
+        y = flip_y(y, self.height)
         
-        # Активируем текстуру
         glEnable(GL_TEXTURE_2D)
         
+        # Сохраняем текущие настройки выравнивания
+        prev_alignment = glGetIntegerv(GL_UNPACK_ALIGNMENT)
+        
         for char in text:
-            # Используем кешированные глифы или создаем новые
             if char not in self.glyph_cache:
                 self.face.load_char(char)
                 slot = self.face.glyph
                 bitmap = slot.bitmap
                 w, h = bitmap.width, bitmap.rows
                 
-                # Создаем текстуру для глифа
+                if w == 0 or h == 0:
+                    self.glyph_cache[char] = {
+                        'texture': None,
+                        'width': w,
+                        'height': h,
+                        'left': slot.bitmap_left,
+                        'top': slot.bitmap_top,
+                        'advance': slot.advance.x >> 6
+                    }
+                    continue
+                    
                 texture_id = glGenTextures(1)
                 glBindTexture(GL_TEXTURE_2D, texture_id)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
                 
-                # Конвертируем данные в формат GL_LUMINANCE_ALPHA
                 data = bitmap.buffer
                 texture_data = (GLubyte * (2 * w * h))()
-                for j in range(h):
-                    for i in range(w):
-                        byte = data[j * w + i]
-                        texture_data[2 * (j * w + i)] = 255  # Luminance (белый)
-                        texture_data[2 * (j * w + i) + 1] = byte  # Alpha
                 
-                # Загружаем текстуру
+                # Устанавливаем выравнивание 1 байт
+                glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+                
+                # Копирование данных с учетом выравнивания
+                for j in range(h):
+                    row_start = j * w
+                    for i in range(w):
+                        idx = 2 * (row_start + i)
+                        byte = data[row_start + i]
+                        texture_data[idx] = 255  # Luminance
+                        texture_data[idx + 1] = byte  # Alpha
+                
                 glTexImage2D(
                     GL_TEXTURE_2D,
                     0,
@@ -260,7 +273,6 @@ class Renderer:
                     texture_data,
                 )
                 
-                # Сохраняем глиф в кеше
                 self.glyph_cache[char] = {
                     'texture': texture_id,
                     'width': w,
@@ -270,15 +282,21 @@ class Renderer:
                     'advance': slot.advance.x >> 6
                 }
             
-            # Получаем глиф из кеша
             glyph = self.glyph_cache[char]
+            if glyph['texture'] is None:
+                x += glyph['advance']
+                continue
+                
             w = glyph['width']
             h = glyph['height']
             
-            # Рендерим глиф
             glBindTexture(GL_TEXTURE_2D, glyph['texture'])
             glPushMatrix()
-            glTranslatef(x + glyph['left'], y + glyph['top'] - h, 0)
+            
+            # Округление координат для избежания смазывания
+            draw_x = round(x + glyph['left'])
+            draw_y = round(y - glyph['top'])
+            glTranslatef(draw_x, draw_y, 0)
             
             glBegin(GL_QUADS)
             glTexCoord2f(0, 1); glVertex2f(0, 0)
@@ -290,7 +308,9 @@ class Renderer:
             glPopMatrix()
             x += glyph['advance']
         
-        # Восстанавливаем состояние OpenGL
+        # Восстанавливаем предыдущие настройки
+        glPixelStorei(GL_UNPACK_ALIGNMENT, prev_alignment)
+        
         if prev_texture_enabled:
             glEnable(GL_TEXTURE_2D)
         else:
