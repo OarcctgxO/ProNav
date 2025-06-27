@@ -175,4 +175,4 @@ def ZEMbad(target, pursuer, N, dt):
     ZEM = yc - vyp * tgo
     
     a = N * ZEM * sign(xt) * sign(- xt / vxt) / (tgo**2 + eps)
-    return clip(a, -10, 10)
+    return a
