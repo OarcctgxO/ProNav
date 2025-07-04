@@ -142,6 +142,7 @@ class Simulation:
             "airplane_pos": (self.airplane.x, self.airplane.y),
             "airplane_vel": (self.airplane.vx, self.airplane.vy),
             "missile_pos": (self.missile.x, self.missile.y),
+            "missile_vel": (self.missile.vx, self.missile.vy),
             "trajectory": self.trajectory,
             "current_law_name": self.current_law.__name__,
             "distances": [
@@ -151,6 +152,7 @@ class Simulation:
             "current_fps": self.current_fps,
             "game_over": self.game_over,
             "win": self.win,
+            "scale": self.scale
         }
         
         self.renderer.draw(render_data)
