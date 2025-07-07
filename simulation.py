@@ -30,15 +30,9 @@ class Simulation:
         self.trajectory = []
         self.game_over = False
         self.win = False
+        self.running = False
 
     def handle_input(self, keys):
-        if arcade.key.SPACE in keys:
-            self.running = not self.running
-        if arcade.key.R in keys:
-                self.reset()
-                self.running = False
-        if arcade.key.ESCAPE in keys:
-            self.running = False
         if arcade.key.A in keys and arcade.key.D in keys:
             self.airplane.a = 0.0
         elif arcade.key.A in keys:
@@ -47,17 +41,12 @@ class Simulation:
             self.airplane.a = -acceleration_pressed
         else:
             self.airplane.a = 0.0
-        if "MOUSE_UP" in keys:
-            self.scale = np.clip(self.scale * 1.1, 1, 100)
-        elif "MOUSE_DOWN" in keys:
-            self.scale = np.clip(self.scale * 0.9, 1, 100)
 
     def update(self, dt):
         if not self.running or self.paused or self.game_over:
             return
         self.airplane.calc_move(dt)
         self.missile.calc_move(dt)
-
         self.trajectory.append(
             ((self.airplane.x, self.airplane.y), (self.missile.x, self.missile.y))
         )
@@ -75,23 +64,3 @@ class Simulation:
         if hypot(self.airplane.x, self.airplane.y) < win_zone_r:
             self.win = True
             self.game_over = True
-
-    def get_data(self):
-        render_data = {
-            "airplane_pos": (self.airplane.x, self.airplane.y),
-            "airplane_vel": (self.airplane.vx, self.airplane.vy),
-            "missile_pos": (self.missile.x, self.missile.y),
-            "missile_vel": (self.missile.vx, self.missile.vy),
-            "trajectory": self.trajectory,
-            "current_law_name": self.current_law.__name__,
-            "distances": [
-                f"Расстояние до цели: {int(hypot(self.airplane.x, self.airplane.y))}",
-                f"Расстояние до ракеты: {int(hypot(self.airplane.x-self.missile.x, self.airplane.y-self.missile.y))}",
-            ],
-            "current_fps": self.current_fps,
-            "game_over": self.game_over,
-            "win": self.win,
-            "scale": self.scale
-        }
-        
-        return render_data
