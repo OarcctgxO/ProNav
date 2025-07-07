@@ -151,7 +151,7 @@ def ZEMAPN(target, pursuer, N, dt):
 
     return (N * ZEM_proj) / tgo_sq
 
-def ZEMbad(target, pursuer, N, dt):
+def myZEM(target, pursuer, N, dt):
     xt, yt, vxt, vyt = target.x, target.y, target.vx, target.vy
     xp, yp, vxp, vyp = pursuer.x, pursuer.y, pursuer.vx, pursuer.vy
     #меняем систему координат

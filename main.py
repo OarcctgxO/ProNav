@@ -53,7 +53,7 @@ class Simulation:
             K_3: laws.APN,
             K_4: laws.ZEMPN,
             K_5: laws.ZEMAPN,
-            K_6: laws.ZEMbad,
+            K_6: laws.myZEM,
         }
         self.current_law = laws.PP
         self.scale = scale
@@ -71,7 +71,7 @@ class Simulation:
     def reset(self):
         self.airplane = airplane(*airplane_start)
         self.missile = missile(
-            *missile_start, target=self.airplane, law=self.current_law, N=N, alpha=alpha
+            *missile_start, target=self.airplane, law=self.current_law, N=N
         )
         self.trajectory = []
         self.keys_pressed = set()

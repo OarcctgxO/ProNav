@@ -1,7 +1,7 @@
 import arcade
 import numpy as np
 import math
-import const
+import const, simulation
 import sys, os
 
 from main import airplane
@@ -35,7 +35,10 @@ class ArcadeRenderer(arcade.Window):
         self.sim_scale = 1
         self.camera = arcade.Camera2D(viewport=arcade.types.Viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
                                       position=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2),
-                                      zoom=1.0)
+                                      zoom=1.0
+                                      )
+        self.keys_pressed = set()
+        self.sim = simulation.Simulation()
         
     def setup(self):
         self.land_sprite = arcade.SpriteList()
@@ -69,8 +72,37 @@ class ArcadeRenderer(arcade.Window):
         
         self.update_camera()
         
-    def w2s(self, x, y):
-        pass
+    def on_key_press(self, key, modifiers):
+        """Обработка нажатия клавиш"""
+        tracked_keys = {
+            arcade.key.KEY_1, arcade.key.KEY_2, arcade.key.KEY_3,
+            arcade.key.KEY_4, arcade.key.KEY_5, arcade.key.KEY_6,
+            arcade.key.A, arcade.key.D, arcade.key.ESCAPE, arcade.key.SPACE, arcade.key.R
+        }
+        if key in tracked_keys:
+            self.keys_pressed.add(key)
+
+    def on_key_release(self, key, modifiers):
+        """Обработка отпускания клавиш"""
+        if key in self.keys_pressed:
+            self.keys_pressed.remove(key)
+    
+    def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
+        """Обработка колесика мыши (scroll_y: вверх > 0, вниз < 0)"""
+        if scroll_y > 0:
+            self.keys_pressed.add("MOUSE_UP")
+        elif scroll_y < 0:
+            self.keys_pressed.add("MOUSE_DOWN")
+        
+    def get_keys(self):
+        keys = self.keys_pressed.copy()
+        
+        if "MOUSE_UP" in keys:
+            self.keys_pressed.discard("MOUSE_UP")
+        if "MOUSE_DOWN" in keys:
+            self.keys_pressed.discard("MOUSE_DOWN")
+        
+        return keys
         
     def on_draw(self):
         self.clear()
