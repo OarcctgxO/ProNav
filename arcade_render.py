@@ -33,7 +33,7 @@ class ArcadeRenderer(arcade.Window):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT)
         arcade.set_background_color(arcade.color.BLACK)
         self.sim_scale = 1
-        self.camera = arcade.Camera2D(viewport=arcade.View(0, SCREEN_WIDTH, 0, SCREEN_HEIGHT),
+        self.camera = arcade.Camera2D(viewport=arcade.types.Viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
                                       position=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2),
                                       zoom=1.0)
         
@@ -43,11 +43,15 @@ class ArcadeRenderer(arcade.Window):
         self.land_sprite[0].center_x = SCREEN_WIDTH // 2
         self.land_sprite[0].center_y = SCREEN_HEIGHT // 2
         
+        self.camera = arcade.Camera2D(viewport=arcade.types.Viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
+                                      position=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2),
+                                      zoom=1.0)
+        
     def update_camera(self):
         self.camera.zoom = 1.0 / self.sim_scale
         self.camera.position = (self.xp, self.yp)
-        angle_rad = math.atan2(self.vxp, self.vyp)
-        self.camera.angle = math.degrees(angle_rad)
+        up_vector = (self.vxp, self.vyp)
+        self.camera.up = up_vector
     
     def update_render_data(self, render_data: dict):
         self.xp, self.yp = render_data['airplane_pos']
