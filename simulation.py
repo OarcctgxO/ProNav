@@ -27,7 +27,8 @@ class Simulation:
         self.missile = missile(
             *missile_start, target=self.airplane, law=self.current_law, N=N
         )
-        self.trajectory = []
+        self.trajectory_aircraft = []
+        self.trajectory_missile = []
         self.game_over = False
         self.win = False
         self.running = False
@@ -47,11 +48,11 @@ class Simulation:
             return
         self.airplane.calc_move(dt)
         self.missile.calc_move(dt)
-        self.trajectory.append(
-            ((self.airplane.x, self.airplane.y), (self.missile.x, self.missile.y))
-        )
-        if len(self.trajectory) > 1000:
-            self.trajectory.pop(0)
+        self.trajectory_aircraft.append((self.airplane.x, self.airplane.y))
+        self.trajectory_missile.append((self.missile.x, self.missile.y))
+        if len(self.trajectory_aircraft) > 1000:
+            self.trajectory_aircraft.pop(0)
+            self.trajectory_missile.pop(0)
 
         if (
             hypot(

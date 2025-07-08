@@ -65,9 +65,13 @@ class ArcadeRenderer(arcade.Window):
 
     def setup(self):
         self.land_sprite = arcade.SpriteList()
-        self.land_sprite.append(arcade.Sprite(load_image("land.png"), 1))
-        self.land_sprite[0].center_x = 0
-        self.land_sprite[0].center_y = 0
+        self.land_sprite.append(arcade.Sprite(load_image("land.png"), 1, center_x=0, center_y=0, angle=0))
+        
+        self.airplane_sprite = arcade.SpriteList()
+        self.airplane_sprite.append(arcade.Sprite(load_image("aircraft.png"), 0.01, center_x=0, center_y=0, angle=0))
+        
+        self.missile_sprite = arcade.SpriteList()
+        self.missile_sprite.append(arcade.Sprite(load_image("missile.png"), 0.001, center_x=0, center_y=0, angle=0))
 
         self.camera = arcade.Camera2D(
             viewport=arcade.types.Viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
@@ -122,8 +126,21 @@ class ArcadeRenderer(arcade.Window):
         self.update_camera()
         self.camera.use()
         self.land_sprite.draw()
-        arcade.draw_circle_filled(self.sim.airplane.x, self.sim.airplane.y, 0.2, arcade.color.BLUE, num_segments=64)
-        arcade.draw_circle_filled(self.sim.missile.x, self.sim.missile.y, 0.2, arcade.color.RED, num_segments=64)
+        
+        arcade.draw_lines(self.sim.trajectory_aircraft, arcade.color.WHITE_SMOKE)
+        
+        self.airplane_sprite[0].center_x = self.sim.airplane.x
+        self.airplane_sprite[0].center_y = self.sim.airplane.y
+        self.airplane_sprite[0].angle = 90 - math.degrees(math.atan2(self.sim.airplane.vy, self.sim.airplane.vx))
+        self.airplane_sprite.draw()
+        
+        self.missile_sprite[0].center_x = self.sim.missile.x
+        self.missile_sprite[0].center_y = self.sim.missile.y
+        self.missile_sprite[0].angle = 90 - math.degrees(math.atan2(self.sim.missile.vy, self.sim.missile.vx))
+        self.missile_sprite.draw()
+        
+        arcade.draw_circle_filled(self.sim.airplane.x, self.sim.airplane.y, 1 / self.sim_scale, arcade.color.BLUE, num_segments=64)
+        arcade.draw_circle_filled(self.sim.missile.x, self.sim.missile.y, 1 / self.sim_scale, arcade.color.RED, num_segments=64)
         self.camera.unproject((0, 0))
 
 
