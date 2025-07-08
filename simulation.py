@@ -1,7 +1,6 @@
 import arcade
 from math import hypot
 import numpy as np
-from render import Renderer
 from bodies import *
 from const import *
 import laws
@@ -48,7 +47,12 @@ class Simulation:
             return
         self.airplane.calc_move(dt)
         self.missile.calc_move(dt)
-        self.trajectory_aircraft.append((self.airplane.x, self.airplane.y))
+        self.trajectory_aircraft.append(
+            (
+                self.airplane.x - self.airplane.vx * tail_offset_time,
+                self.airplane.y - self.airplane.vy * tail_offset_time,
+            )
+        )
         self.trajectory_missile.append((self.missile.x, self.missile.y))
         if len(self.trajectory_aircraft) > 1000:
             self.trajectory_aircraft.pop(0)
