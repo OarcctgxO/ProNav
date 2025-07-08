@@ -1,185 +1,202 @@
-import os
-os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
-os.environ["SDL_VIDEODRIVER"] = "windows"
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning, message="pkg_resources is deprecated")
-import time
-import pygame
-import sys
-from PIL import Image
-from pygame.locals import (
-    K_1, K_2, K_3, K_4, K_5, K_6,
-    K_a, K_d, K_SPACE, K_r, K_ESCAPE,
-    QUIT, KEYDOWN, KEYUP, MOUSEBUTTONDOWN,
-)
-from math import hypot
+import arcade
 import numpy as np
-from render import Renderer
-from bodies import *
-from const import *
-import laws
+import math
+import const, simulation
+import sys, os
 
-def load_image():
-    """Загружает изображение land.png из директории скрипта или EXE."""
+SCREEN_WIDTH = 1920
+SCREEN_HEIGHT = 1080
+
+
+def load_image(file_name: str):
+    """Загружает изображение file_name из директории скрипта или EXE."""
     try:
-        # Определяем базовый путь
-        if getattr(sys, 'frozen', False):
+        if getattr(sys, "frozen", False):
             # Для собранного EXE
-            base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+            base_path = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
         else:
             # Для режима разработки
             base_path = os.path.dirname(os.path.abspath(__file__))
-        
-        # Формируем полный путь к изображению
-        image_path = os.path.join(base_path, 'land.png')
-        
-        # Проверяем существование файла перед загрузкой
+
+        image_path = os.path.join(base_path, file_name)
+
         if not os.path.exists(image_path):
-            raise FileNotFoundError(f"Файл 'land.png' не найден по пути: {image_path}")
-        
+            raise FileNotFoundError(
+                f"Файл '{file_name}' не найден по пути: {image_path}"
+            )
+
         return image_path
-        
     except Exception as e:
         raise RuntimeError(f"Ошибка загрузки изображения: {str(e)}")
 
-class Simulation:
+
+class ArcadeRenderer(arcade.Window):
     def __init__(self):
-        self.running = False
-        self.paused = False
-        self.current_fps = FPS
-        self.laws = {
-            K_1: laws.PP,
-            K_2: laws.TPN,
-            K_3: laws.APN,
-            K_4: laws.ZEMPN,
-            K_5: laws.ZEMAPN,
-            K_6: laws.ZEMbad,
-        }
-        self.current_law = laws.PP
-        self.scale = scale
-        
-        # Инициализация рендерера
-        pygame.init()
-        self.width, self.height = 1920, 1080
-        screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF | pygame.OPENGL | pygame.FULLSCREEN)
-        land_image = pygame.image.load(load_image()).convert_alpha()
-        pygame.display.set_caption("Ракетная симуляция")
-        
-        self.renderer = Renderer(self.width, self.height, land_image, self.scale)
-        self.reset()
-
-    def reset(self):
-        self.airplane = airplane(*airplane_start)
-        self.missile = missile(
-            *missile_start, target=self.airplane, law=self.current_law, N=N, alpha=alpha
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.set_fullscreen(True)
+        arcade.set_background_color(arcade.color.BLACK)
+        self.sim_scale = const.scale
+        self.camera = arcade.Camera2D(
+            viewport=arcade.types.Viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
+            position=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2),
+            zoom=self.sim_scale,
         )
-        self.trajectory = []
         self.keys_pressed = set()
-        self.game_over = False
-        self.win = False
-
-    def handle_input(self, event):
-        if event.type == KEYDOWN:
-            if event.key in self.laws:
-                self.current_law = self.laws[event.key]
-                self.reset()
-                self.running = False
-            if event.key == K_SPACE:
-                self.running = not self.running
-            if event.key == K_r:
-                self.reset()
-                self.running = False
-            if event.key == K_ESCAPE:
-                pygame.quit()
-                sys.exit()
-            self.keys_pressed.add(event.key)
-        if event.type == MOUSEBUTTONDOWN:
-            if event.button == 4:  # Колесо вверх
-                self.scale = np.clip(self.scale * 1.1, 1, 100)
-                self.renderer.set_scale(self.scale)
-            elif event.button == 5:  # Колесо вниз
-                self.scale = np.clip(self.scale * 0.9, 1, 100)
-                self.renderer.set_scale(self.scale)
-        elif event.type == KEYUP:
-            if event.key in self.keys_pressed:
-                self.keys_pressed.remove(event.key)
-
-    def update_acceleration(self):
-        self.airplane.a = 0
-        if K_a in self.keys_pressed:
-            self.airplane.a = acceleration_pressed
-        if K_d in self.keys_pressed:
-            self.airplane.a = -acceleration_pressed
-
-    def update(self, dt):
-        if not self.running or self.paused or self.game_over:
-            return
-
-        self.update_acceleration()
-        self.airplane.calc_move(dt)
-        self.missile.calc_move(dt)
-
-        self.trajectory.append(
-            ((self.airplane.x, self.airplane.y), (self.missile.x, self.missile.y))
+        self.sim = simulation.Simulation()
+        self.toggle_keys = (
+            arcade.key.KEY_1,
+            arcade.key.KEY_2,
+            arcade.key.KEY_3,
+            arcade.key.KEY_4,
+            arcade.key.KEY_5,
+            arcade.key.KEY_6,
+            arcade.key.ESCAPE,
+            arcade.key.SPACE,
+            arcade.key.R,
         )
-        if len(self.trajectory) > 1000:
-            self.trajectory.pop(0)
+        self.push_keys = (arcade.key.A, arcade.key.D)
 
-        if (
-            hypot(
-                self.missile.x - self.airplane.x, self.missile.y - self.airplane.y
-            )
-            < plane_size
-        ):
-            self.game_over = True
+    def setup(self):
+        self.land_sprite = arcade.SpriteList()
+        self.land_sprite.append(arcade.Sprite(load_image("land.png"), 1, center_x=0, center_y=0, angle=0))
 
-        if hypot(self.airplane.x, self.airplane.y) < win_zone_r:
-            self.win = True
-            self.game_over = True
+        self.airplane_sprite = arcade.SpriteList()
+        self.airplane_sprite.append(arcade.Sprite(load_image("aircraft.png"), 0.01, center_x=0, center_y=0, angle=0))
 
-    def draw(self):
-        render_data = {
-            "airplane_pos": (self.airplane.x, self.airplane.y),
-            "airplane_vel": (self.airplane.vx, self.airplane.vy),
-            "missile_pos": (self.missile.x, self.missile.y),
-            "trajectory": self.trajectory,
-            "current_law_name": self.current_law.__name__,
-            "distances": [
-                f"Расстояние до цели: {int(hypot(self.airplane.x, self.airplane.y))}",
-                f"Расстояние до ракеты: {int(hypot(self.airplane.x-self.missile.x, self.airplane.y-self.missile.y))}",
-            ],
-            "current_fps": self.current_fps,
-            "game_over": self.game_over,
-            "win": self.win,
-        }
-        
-        self.renderer.draw(render_data)
+        self.missile_sprite = arcade.SpriteList()
+        self.missile_sprite.append(arcade.Sprite(load_image("missile.png"), 0.004, center_x=0, center_y=0, angle=0))
 
-def main():
-    sim = Simulation()
-    running = True
-    clock = pygame.time.Clock()
-    target_fps = FPS
+        self.camera = arcade.Camera2D(
+            viewport=arcade.types.Viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
+            position=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2),
+            zoom=1.0,
+        )
 
-    while running:
-        frame_start = time.time()
+    def update_camera(self):
+        self.camera.zoom = self.sim_scale
+        self.camera.position = (self.sim.airplane.x, self.sim.airplane.y)
+        up_vector = (self.sim.airplane.vx, self.sim.airplane.vy)
+        self.camera.up = up_vector
 
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                running = False
-            sim.handle_input(event)
+    def toggle(self, key, modifiers):
+        if key in self.toggle_keys[:6]:
+            number = self.toggle_keys.index(key) + 1
+            self.sim.current_law = self.sim.laws[number]
+            self.sim.reset()
+            self.sim.running = False
+        elif key == arcade.key.SPACE:
+            self.sim.running = not self.sim.running
+        elif key == arcade.key.R:
+            self.sim.reset()
+            self.sim.running = False
+        elif key == arcade.key.ESCAPE:
+            self.close()
 
-        dt = 1.0 / sim.current_fps
-        sim.update(dt)
-        sim.draw()
+    def draw_texts(self):
+        text_size = 20
+        text_top_left = (
+            f"[1-6] Закон наведения: {self.sim.current_law.__name__}",
+            "[Space] Старт / Пауза",
+            "[A, D] Управление",
+            "[R] Сброс"
+            "[ESC] Выход",
+        )
+        text_win = f"Расстояние до зоны победы: {math.floor(math.hypot(self.sim.airplane.x, self.sim.airplane.y))}"
+        text_loose = f"Расстояние до ракеты: {math.floor(math.hypot(self.sim.airplane.x - self.sim.missile.x, self.sim.airplane.y - self.sim.missile.y))}"
+        text_FPS = f'FPS: {self.sim.current_fps}'
 
-        frame_time = time.time() - frame_start
-        if frame_time < 1.0 / target_fps:
-            clock.tick(target_fps)
-        else:
-            sim.current_fps = int(1.0 / frame_time)
+        text_top_left = arcade.Text(
+            '\n'.join(text_top_left),
+            5, SCREEN_HEIGHT - 5,
+            arcade.color.WHITE,
+            text_size,
+            align='left',
+            width=500,
+            multiline=True,
+            anchor_x='left', anchor_y='top'
+        )
 
-    pygame.quit()
+        text_win = arcade.Text(
+            text_win,
+            SCREEN_WIDTH - 5,
+            SCREEN_HEIGHT - 5,
+            arcade.color.GREEN,
+            text_size,
+            anchor_x="right",
+            anchor_y="top",
+        )
+
+        text_loose = arcade.Text(
+            text_loose,
+            SCREEN_WIDTH - 5,
+            SCREEN_HEIGHT - 25,
+            arcade.color.RED,
+            text_size,
+            anchor_x="right",
+            anchor_y="top",
+        )
+
+        text_FPS = arcade.Text(
+            text_FPS,
+            5,
+            5,
+            arcade.color.WHITE,
+            text_size,
+            anchor_x="left",
+            anchor_y="bottom",
+        )
+
+        texts = (text_top_left, text_win, text_loose, text_FPS)
+        for t in texts:
+            t.draw()
+
+    def on_key_press(self, key, modifiers):
+        """Обработка нажатия клавиш"""
+        if key in self.push_keys:
+            self.keys_pressed.add(key)
+        elif key in self.toggle_keys:
+            self.toggle(key, modifiers)
+
+    def on_key_release(self, key, modifiers):
+        """Обработка отпускания клавиш"""
+        if key in self.keys_pressed:
+            self.keys_pressed.remove(key)
+
+    def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
+        """Обработка колесика мыши (scroll_y: вверх > 0, вниз < 0)"""
+        if scroll_y > 0:
+            self.sim_scale = np.clip(self.sim_scale * 1.1, 1, 100)
+        elif scroll_y < 0:
+            self.sim_scale = np.clip(self.sim_scale * 0.9, 1, 100)
+
+    def on_draw(self):
+        dt = 1 / const.FPS
+        self.clear()
+        self.sim.handle_input(self.keys_pressed)
+        self.sim.update(dt)
+        self.update_camera()
+
+        with self.camera.activate():
+            self.land_sprite.draw()
+
+            arcade.draw_circle_outline(0, 0, 5, arcade.color.GREEN, 1 / self.sim_scale, num_segments=64)
+
+            arcade.draw_line_strip(self.sim.trajectory_missile, arcade.color.ORANGE_RED)
+            arcade.draw_line_strip(self.sim.trajectory_aircraft, arcade.color.WHITE_SMOKE)
+
+            self.airplane_sprite[0].center_x = self.sim.airplane.x
+            self.airplane_sprite[0].center_y = self.sim.airplane.y
+            self.airplane_sprite[0].angle = 90 - math.degrees(math.atan2(self.sim.airplane.vy, self.sim.airplane.vx))
+            self.airplane_sprite.draw()
+
+            self.missile_sprite[0].center_x = self.sim.missile.x
+            self.missile_sprite[0].center_y = self.sim.missile.y
+            self.missile_sprite[0].angle = 90 - math.degrees(math.atan2(self.sim.missile.vy, self.sim.missile.vx))
+            self.missile_sprite.draw()
+
+        self.draw_texts()
 
 if __name__ == "__main__":
-    main()
+    window = ArcadeRenderer()
+    window.setup()
+    arcade.run()

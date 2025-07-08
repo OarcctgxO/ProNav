@@ -44,7 +44,7 @@ class airplane:
         self.vy = new_vy
 
 class missile(airplane):    #ракета почти ничем не отличается от самолета
-    def __init__(self, x, y, vx, vy, law, target, N, alpha):
+    def __init__(self, x, y, vx, vy, law, target, N):
         super().__init__(x, y, vx, vy)
         self.law = law  #закон наведения на цель
         self.target = target    #сама цель
