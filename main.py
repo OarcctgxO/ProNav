@@ -101,8 +101,8 @@ class ArcadeRenderer(arcade.Window):
             "[R] Сброс"
             "[ESC] Выход",
         )
-        text_win = f"Расстояние до зоны победы: {math.floor(math.hypot(self.sim.airplane.x, self.sim.airplane.y))}"
-        text_loose = f"Расстояние до ракеты: {math.floor(math.hypot(self.sim.airplane.x - self.sim.missile.x, self.sim.airplane.y - self.sim.missile.y))}"
+        text_dist_win = f"Расстояние до зоны победы: {math.floor(math.hypot(self.sim.airplane.x, self.sim.airplane.y))}"
+        text_dist_missile = f"Расстояние до ракеты: {math.floor(math.hypot(self.sim.airplane.x - self.sim.missile.x, self.sim.airplane.y - self.sim.missile.y))}"
         text_FPS = f'FPS: {self.sim.current_fps}'
 
         text_top_left = arcade.Text(
@@ -113,27 +113,32 @@ class ArcadeRenderer(arcade.Window):
             align='left',
             width=500,
             multiline=True,
-            anchor_x='left', anchor_y='top'
+            anchor_x='left', anchor_y='top',
+            font_name="impact"
         )
 
-        text_win = arcade.Text(
-            text_win,
-            SCREEN_WIDTH - 5,
+        text_dist_win = arcade.Text(
+            text_dist_win,
+            SCREEN_WIDTH - 390,
             SCREEN_HEIGHT - 5,
             arcade.color.GREEN,
             text_size,
-            anchor_x="right",
+            align="left",
+            anchor_x="left",
             anchor_y="top",
+            font_name="impact"
         )
 
-        text_loose = arcade.Text(
-            text_loose,
-            SCREEN_WIDTH - 5,
-            SCREEN_HEIGHT - 25,
+        text_dist_missile = arcade.Text(
+            text_dist_missile,
+            SCREEN_WIDTH - 320,
+            SCREEN_HEIGHT - 30,
             arcade.color.RED,
             text_size,
-            anchor_x="right",
+            align="left",
+            anchor_x="left",
             anchor_y="top",
+            font_name="impact"
         )
 
         text_FPS = arcade.Text(
@@ -144,11 +149,28 @@ class ArcadeRenderer(arcade.Window):
             text_size,
             anchor_x="left",
             anchor_y="bottom",
+            font_name="impact"
         )
+        
+        text_game_over = arcade.Text(
+            "Победа!",
+            SCREEN_WIDTH // 2,
+            SCREEN_HEIGHT // 2 + 50,
+            arcade.color.GREEN,
+            text_size + 1,
+            anchor_x="left",
+            anchor_y="bottom",
+            font_name="impact"
+        )
+        if not self.sim.win:
+            text_game_over.text = "Цель перехвачена!"
+            text_game_over.color = arcade.color.RED
 
-        texts = (text_top_left, text_win, text_loose, text_FPS)
-        for t in texts:
+        texts_hud = (text_top_left, text_dist_win, text_dist_missile, text_FPS)
+        for t in texts_hud:
             t.draw()
+        if self.sim.game_over:
+            text_game_over.draw()
 
     def on_key_press(self, key, modifiers):
         """Обработка нажатия клавиш"""
