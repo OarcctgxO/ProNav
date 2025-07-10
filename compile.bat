@@ -2,6 +2,7 @@ python -m PyInstaller --onefile ^
     --add-data "land.png;." ^
     --add-data "aircraft.png;." ^
     --add-data "missile.png;." ^
+    --add-data "boom.png;." ^
     --noconsole ^
     --hidden-import arcade ^
     --hidden-import arcade.gl ^

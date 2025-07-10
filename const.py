@@ -5,9 +5,9 @@ N = 3   #навигационная постоянная ракеты
 acceleration_pressed = 100   #ускорение самолета при нажатии клавиш
 FPS = 120   #шагов симуляции в секунду (секунда симуляции, а не реальная)
 scale = 7 #масштаб симуляции
-tail_offset_time = 0.01
+tail_offset_time = 0.02
 win_zone_r = 5
-plane_size = 1
+plane_size = 2
 #НАЧАЛЬНЫЕ УСЛОВИЯ: x, y, vx, vy
 airplane_start = [200.0, 200.0, -50.0, 0.0]
 missile_start = [0.0, 0.0, 100.0, 0.0]

@@ -1,12 +1,15 @@
 import arcade
 import numpy as np
 import math
+from bodies import missile
 import const, simulation
 import sys, os
 
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
 
+def pixel_norm(FHD_size: float):
+    return FHD_size * SCREEN_HEIGHT / 1080
 
 def load_image(file_name: str):
     """Загружает изображение file_name из директории скрипта или EXE."""
@@ -66,6 +69,9 @@ class ArcadeRenderer(arcade.Window):
         self.missile_sprite = arcade.SpriteList()
         self.missile_sprite.append(arcade.Sprite(load_image("missile.png"), 0.004, center_x=0, center_y=0, angle=0))
 
+        self.boom_sprite = arcade.SpriteList()
+        self.boom_sprite.append(arcade.Sprite(load_image("BOOM.png"), 0.008, center_x=0, center_y=0, angle=0))
+        
         self.camera = arcade.Camera2D(
             viewport=arcade.types.Viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
             position=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2),
@@ -93,7 +99,7 @@ class ArcadeRenderer(arcade.Window):
             self.close()
 
     def draw_texts(self):
-        text_size = 20
+        text_size = pixel_norm(20)
         text_top_left = (
             f"[1-6] Закон наведения: {self.sim.current_law.__name__}",
             "[Space] Старт / Пауза",
@@ -107,11 +113,11 @@ class ArcadeRenderer(arcade.Window):
 
         text_top_left = arcade.Text(
             '\n'.join(text_top_left),
-            5, SCREEN_HEIGHT - 5,
+            pixel_norm(5), SCREEN_HEIGHT - pixel_norm(5),
             arcade.color.WHITE,
             text_size,
             align='left',
-            width=500,
+            width=int(pixel_norm(500)),
             multiline=True,
             anchor_x='left', anchor_y='top',
             font_name="impact"
@@ -119,8 +125,8 @@ class ArcadeRenderer(arcade.Window):
 
         text_dist_win = arcade.Text(
             text_dist_win,
-            SCREEN_WIDTH - 390,
-            SCREEN_HEIGHT - 5,
+            SCREEN_WIDTH - pixel_norm(390),
+            SCREEN_HEIGHT - pixel_norm(5),
             arcade.color.GREEN,
             text_size,
             align="left",
@@ -131,8 +137,8 @@ class ArcadeRenderer(arcade.Window):
 
         text_dist_missile = arcade.Text(
             text_dist_missile,
-            SCREEN_WIDTH - 320,
-            SCREEN_HEIGHT - 30,
+            SCREEN_WIDTH - pixel_norm(320),
+            SCREEN_HEIGHT - pixel_norm(30),
             arcade.color.RED,
             text_size,
             align="left",
@@ -143,8 +149,8 @@ class ArcadeRenderer(arcade.Window):
 
         text_FPS = arcade.Text(
             text_FPS,
-            5,
-            5,
+            pixel_norm(5),
+            pixel_norm(5),
             arcade.color.WHITE,
             text_size,
             anchor_x="left",
@@ -155,9 +161,9 @@ class ArcadeRenderer(arcade.Window):
         text_game_over = arcade.Text(
             "Победа!",
             SCREEN_WIDTH // 2,
-            SCREEN_HEIGHT // 2 + 50,
+            SCREEN_HEIGHT // 2 + pixel_norm(50),
             arcade.color.GREEN,
-            text_size + 1,
+            text_size + pixel_norm(1),
             anchor_x="left",
             anchor_y="bottom",
             font_name="impact"
@@ -210,11 +216,16 @@ class ArcadeRenderer(arcade.Window):
             self.airplane_sprite[0].center_y = self.sim.airplane.y
             self.airplane_sprite[0].angle = 90 - math.degrees(math.atan2(self.sim.airplane.vy, self.sim.airplane.vx))
             self.airplane_sprite.draw()
-
-            self.missile_sprite[0].center_x = self.sim.missile.x
-            self.missile_sprite[0].center_y = self.sim.missile.y
-            self.missile_sprite[0].angle = 90 - math.degrees(math.atan2(self.sim.missile.vy, self.sim.missile.vx))
-            self.missile_sprite.draw()
+            
+            self.current_missile_sprite = self.missile_sprite
+            if self.sim.game_over and not self.sim.win:
+                self.current_missile_sprite = self.boom_sprite
+            else:
+                self.current_missile_sprite = self.missile_sprite
+            self.current_missile_sprite[0].center_x = self.sim.missile.x
+            self.current_missile_sprite[0].center_y = self.sim.missile.y
+            self.current_missile_sprite[0].angle = 90 - math.degrees(math.atan2 (self.sim.missile.vy, self.sim.missile.vx))
+            self.current_missile_sprite.draw()
 
         self.draw_texts()
 

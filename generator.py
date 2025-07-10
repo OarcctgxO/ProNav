@@ -80,24 +80,24 @@ def height_to_color(height_map, color_variation):
         return np.clip(varied_color, 0, 255).astype(np.uint8)
     
     # Применяем цветовые вариации к каждому биому
-    color_map[deep_ocean_mask] = apply_variation([0, 0, 100], deep_ocean_mask, color_variation)
-    color_map[ocean_mask] = apply_variation([0, 0, 200], ocean_mask, color_variation)
-    color_map[beach_mask] = apply_variation([200, 200, 100], beach_mask, color_variation)
-    color_map[plain_mask] = apply_variation([100, 200, 100], plain_mask, color_variation)
-    color_map[forest_mask] = apply_variation([34, 139, 34], forest_mask, color_variation)
-    color_map[mountain_mask] = apply_variation([60, 60, 60], mountain_mask, color_variation)
-    color_map[snow_mountain_mask] = apply_variation([240, 240, 240], snow_mountain_mask, color_variation)
+    color_map[deep_ocean_mask] = apply_variation([0, 0, 50], deep_ocean_mask, color_variation)
+    color_map[ocean_mask] = apply_variation([0, 0, 100], ocean_mask, color_variation)
+    color_map[beach_mask] = apply_variation([100, 100, 50], beach_mask, color_variation)
+    color_map[plain_mask] = apply_variation([50, 100, 50], plain_mask, color_variation)
+    color_map[forest_mask] = apply_variation([17, 70, 17], forest_mask, color_variation)
+    color_map[mountain_mask] = apply_variation([30, 30, 30], mountain_mask, color_variation)
+    color_map[snow_mountain_mask] = apply_variation([120, 120, 120], snow_mountain_mask, color_variation)
     
     # Плавные переходы между биомами
     transition_width = 0.02
     
     transitions = [
-        (deep_ocean_height, [0, 0, 100], [0, 0, 200]),
-        (ocean_height, [0, 0, 200], [200, 200, 100]),
-        (beach_height, [200, 200, 100], [100, 200, 100]),
-        (plain_height, [100, 200, 100], [34, 139, 34]),
-        (forest_height, [34, 139, 34], [60, 60, 60]),
-        (mountain_height, [60, 60, 60], [240, 240, 240])
+        (deep_ocean_height, [0, 0, 50], [0, 0, 100]),
+        (ocean_height, [0, 0, 100], [100, 100, 50]),
+        (beach_height, [100, 100, 50], [50, 100, 50]),
+        (plain_height, [50, 100, 50], [17, 70, 17]),
+        (forest_height, [17, 70, 17], [30, 30, 30]),
+        (mountain_height, [30, 30, 30], [120, 120, 120])
     ]
     
     for height_val, color1, color2 in transitions:
