@@ -1,9 +1,8 @@
 import arcade
 import numpy as np
 import math
-from bodies import missile
 import const, simulation
-import sys, os
+import sys, os, time
 
 SCREEN_WIDTH = 1920
 SCREEN_HEIGHT = 1080
@@ -109,7 +108,7 @@ class ArcadeRenderer(arcade.Window):
         )
         text_dist_win = f"Расстояние до зоны победы: {math.floor(math.hypot(self.sim.airplane.x, self.sim.airplane.y))}"
         text_dist_missile = f"Расстояние до ракеты: {math.floor(math.hypot(self.sim.airplane.x - self.sim.missile.x, self.sim.airplane.y - self.sim.missile.y))}"
-        text_FPS = f'FPS: {self.sim.current_fps}'
+        text_FPS = f'FPS: {math.floor(self.sim.current_fps)}'
 
         text_top_left = arcade.Text(
             '\n'.join(text_top_left),
@@ -198,7 +197,8 @@ class ArcadeRenderer(arcade.Window):
             self.sim_scale = np.clip(self.sim_scale * 0.9, 1, 100)
 
     def on_draw(self):
-        dt = 1 / const.FPS
+        dt = 1 / self.sim.current_fps
+        frame_time_start = time.perf_counter()
         self.clear()
         self.sim.handle_input(self.keys_pressed)
         self.sim.update(dt)
@@ -228,6 +228,14 @@ class ArcadeRenderer(arcade.Window):
             self.current_missile_sprite.draw()
 
         self.draw_texts()
+        frame_time = time.perf_counter() - frame_time_start
+        min_frame_time = 1 / const.FPS
+        diff = min_frame_time - frame_time
+        if diff >= 0:
+            time.sleep(diff)
+        real_FPS = np.clip(1 / frame_time, 1, const.FPS)
+        self.sim.current_fps = real_FPS
+            
 
 if __name__ == "__main__":
     window = ArcadeRenderer()
