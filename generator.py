@@ -4,7 +4,7 @@ from PIL import Image
 from noise import snoise2
 
 # Параметры генерации
-width, height = 2000, 2000
+width, height = 4000, 4000
 scale = 300.0
 seed = 6
 
