@@ -1,9 +1,9 @@
 from math import hypot
-from const import eps, air_drag, acceleration_pressed
-from laws import norm_a
 from numpy import clip
+import const
+import laws
 
-class airplane:
+class Airplane:
     def __init__(self, x, y, vx, vy):
         self.x = x  #координата x
         self.y = y  #координата y
@@ -11,13 +11,13 @@ class airplane:
         self.vy = vy    #проекция скорости на ось y
 
         self.a = 0.
-        self.ax, self.ay = norm_a(self.vx, self.vy, self.a)
+        self.ax, self.ay = laws.norm_a(self.vx, self.vy, self.a)
         
         self.max_speed = hypot(vx, vy)  #максимальная скорость определяется как начальная
 
     def calc_move(self, dt):    #метод двигает самолет и записывает его положение через dt времени
         # Считаем проекции ускорения
-        self.ax, self.ay = norm_a(self.vx, self.vy, self.a)
+        self.ax, self.ay = laws.norm_a(self.vx, self.vy, self.a)
         # Применяем ускорение к скорости
         new_vx = self.vx + self.ax * dt
         new_vy = self.vy + self.ay * dt
@@ -43,7 +43,7 @@ class airplane:
         self.vx = new_vx
         self.vy = new_vy
 
-class missile(airplane):    #ракета почти ничем не отличается от самолета
+class Missile(Airplane):
     def __init__(self, x, y, vx, vy, law, target, N):
         super().__init__(x, y, vx, vy)
         self.law = law  #закон наведения на цель
@@ -52,9 +52,9 @@ class missile(airplane):    #ракета почти ничем не отлич�
         
     def calc_move(self, dt):
         #считаем ускорение для перехвата цели (по одному из законов). ускорение в 2 раза больше максимального ускорения самолета
-        self.a = clip(self.law(self.target, self, self.N, dt), -2* acceleration_pressed, 2* acceleration_pressed)
-        if self.max_speed > eps:
-            self.max_speed -= hypot(self.ax, self.ay) * dt * air_drag   #замедляемся пропорционально боковому усилию поворота
+        self.a = clip(self.law(self.target, self, self.N, dt), -2* const.acceleration_pressed, 2* const.acceleration_pressed)
+        if self.max_speed > const.eps:
+            self.max_speed -= hypot(self.ax, self.ay) * dt * const.air_drag   #замедляемся пропорционально боковому усилию поворота
         else:
             self.max_speed = 0.
             return

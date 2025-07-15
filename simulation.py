@@ -1,15 +1,14 @@
 import arcade
 from math import hypot
-import numpy as np
-from bodies import *
-from const import *
+import bodies
+import const
 import laws
 
 class Simulation:
     def __init__(self):
         self.running = False
         self.paused = False
-        self.current_fps = FPS
+        self.current_fps = const.FPS
         self.laws = {
             1: laws.PP,
             2: laws.TPN,
@@ -22,9 +21,9 @@ class Simulation:
         self.reset()
 
     def reset(self):
-        self.airplane = airplane(*airplane_start)
-        self.missile = missile(
-            *missile_start, target=self.airplane, law=self.current_law, N=N
+        self.airplane = bodies.Airplane(*const.airplane_start)
+        self.missile = bodies.Missile(
+            *const.missile_start, target=self.airplane, law=self.current_law, N=const.N
         )
         self.trajectory_aircraft = []
         self.trajectory_missile = []
@@ -36,9 +35,9 @@ class Simulation:
         if arcade.key.A in keys and arcade.key.D in keys:
             self.airplane.a = 0.0
         elif arcade.key.A in keys:
-            self.airplane.a = acceleration_pressed
+            self.airplane.a = const.acceleration_pressed
         elif arcade.key.D in keys:
-            self.airplane.a = -acceleration_pressed
+            self.airplane.a = -const.acceleration_pressed
         else:
             self.airplane.a = 0.0
 
@@ -49,8 +48,8 @@ class Simulation:
         self.missile.calc_move(dt)
         self.trajectory_aircraft.append(
             (
-                self.airplane.x - self.airplane.vx * tail_offset_time,
-                self.airplane.y - self.airplane.vy * tail_offset_time,
+                self.airplane.x - self.airplane.vx * const.tail_offset_time,
+                self.airplane.y - self.airplane.vy * const.tail_offset_time,
             )
         )
         self.trajectory_missile.append((self.missile.x, self.missile.y))
@@ -62,10 +61,10 @@ class Simulation:
             hypot(
                 self.missile.x - self.airplane.x, self.missile.y - self.airplane.y
             )
-            < plane_size
+            < const.plane_size
         ):
             self.game_over = True
 
-        if hypot(self.airplane.x, self.airplane.y) < win_zone_r:
+        if hypot(self.airplane.x, self.airplane.y) < const.win_zone_r:
             self.win = True
             self.game_over = True

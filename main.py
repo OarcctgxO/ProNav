@@ -1,4 +1,4 @@
-import arcade, pyglet
+import arcade
 import ctypes
 import numpy as np
 import math

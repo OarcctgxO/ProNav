@@ -1,22 +1,21 @@
 from math import atan2, hypot, pi
-from const import eps, air_drag
 from numpy import sign, clip
 from copy import deepcopy
-
+import const
 
 def norm_a(vx, vy, a): #раскладывает ускорение цели на составляющие так, что они перпендикулярны скорости
     vp = hypot(vx, vy)
-    if vp < eps:
+    if vp < const.eps:
         return [0.0, 0.0]
-    vp += eps
+    vp += const.eps
     ax = -a * (vy / vp)
     ay = a * (vx / vp)
     return [ax, ay]
 
-def join_a(vx, vy, ax, ay):
+def join_a(vx, vy, ax, ay): #обратная операция к norm_a - собирает ускорение в одну переменную (перпендикулярную к скорости)
     return hypot(ax, ay) * sign(vx * ay - vy * ax)
 
-def vc(dx, dy, dvx, dvy):
+def vc(dx, dy, dvx, dvy):   #скорость сближения
     v = hypot(dvx, dvy) * sign(- dvx * dx - dvy * dy)
     return v
     
@@ -24,7 +23,7 @@ def vc(dx, dy, dvx, dvy):
 def PP(target, pursuer, N, dt):
     x = target.x - pursuer.x
     y = target.y - pursuer.y
-    if hypot(x, y) < eps:
+    if hypot(x, y) < const.eps:
         return 0.0
     
     vp = hypot(pursuer.vx, pursuer.vy)
@@ -45,7 +44,7 @@ def TPN(target, pursuer, N, dt):
     vx = target.vx - pursuer.vx
     vy = target.vy - pursuer.vy
     
-    if hypot(x, y) <= eps:
+    if hypot(x, y) <= const.eps:
         return 0.0
 
     los_rate = (vy * x - vx * y) / (x**2 + y**2)
@@ -63,14 +62,14 @@ def APN(target, pursuer, N, dt):
     ax = target.ax - pursuer.ax
     ay = target.ay - pursuer.ay
     
-    if hypot(x, y) <= eps:
+    if hypot(x, y) <= const.eps:
         return 0.0
 
     los_rate = (vy * x - vx * y) / (x**2 + y**2)
     vp = hypot(pursuer.vx, pursuer.vy)
     
     numerator = vy * x - vx * y
-    denominator = x**2 + y**2 + eps
+    denominator = x**2 + y**2 + const.eps
     
     d_numerator = ay * x - ax * y
     d_denominator = 2 * (x * vx + y * vy)
@@ -87,11 +86,11 @@ def ZEMPN(target, pursuer, N, dt):
     vx = target.vx - pursuer.vx
     vy = target.vy - pursuer.vy
 
-    if hypot(x, y) < eps or hypot(pursuer.vx, pursuer.vy) < eps:
+    if hypot(x, y) < const.eps or hypot(pursuer.vx, pursuer.vy) < const.eps:
         return 0.0
 
     numerator = x * vx + y * vy
-    denominator = vx**2 + vy**2 + eps
+    denominator = vx**2 + vy**2 + const.eps
     tgo = -numerator / denominator
 
     ZEMx = x + vx * tgo
@@ -101,13 +100,13 @@ def ZEMPN(target, pursuer, N, dt):
     norm_x = -pursuer.vy
     norm_y = pursuer.vx
     norm_length = hypot(norm_x, norm_y)
-    if norm_length < eps:
+    if norm_length < const.eps:
         return 0.0
 
     # Проекция ZEM на нормаль
     ZEM_proj = (ZEMx * norm_x + ZEMy * norm_y) / norm_length
 
-    tgo_sq = tgo**2 + eps
+    tgo_sq = tgo**2 + const.eps
     a = (N * ZEM_proj) / tgo_sq
 
     return a
@@ -119,11 +118,11 @@ def ZEMAPN(target, pursuer, N, dt):
     vy = target.vy - pursuer.vy
     r = hypot(x, y)
     
-    if r < eps or hypot(pursuer.vx, pursuer.vy) < eps:
+    if r < const.eps or hypot(pursuer.vx, pursuer.vy) < const.eps:
         return 0.0
 
     numerator = x * vx + y * vy
-    denominator = vx**2 + vy**2 + eps
+    denominator = vx**2 + vy**2 + const.eps
     tgo = -numerator / denominator
 
     predictor = deepcopy(target)
@@ -143,11 +142,11 @@ def ZEMAPN(target, pursuer, N, dt):
     norm_y = pursuer.vx
     norm_length = hypot(norm_x, norm_y)
     
-    if norm_length < eps:
+    if norm_length < const.eps:
         return 0.0
     
     ZEM_proj = (ZEMx * norm_x + ZEMy * norm_y) / norm_length
-    tgo_sq = tgo**2 + eps
+    tgo_sq = tgo**2 + const.eps
 
     return (N * ZEM_proj) / tgo_sq
 
@@ -167,12 +166,12 @@ def myZEM(target, pursuer, N, dt):
     
     xt, yt, vxt, vyt, xp, yp, vxp, vyp = xt_new, yt_new, vxt_new, vyt_new, 0.0, 0.0, vxp_new, vp
     
-    if abs(vxt) < eps:
+    if abs(vxt) < const.eps:
         return TPN(target, pursuer, N, dt)
     tgo = - xt / vxt
-    tgo = clip(tgo, eps, 999999)
+    tgo = clip(tgo, const.eps, 999999)
     yc = yt + vyt * tgo
     ZEM = yc - vyp * tgo
     
-    a = N * ZEM * sign(xt) * sign(- xt / vxt) / (tgo**2 + eps)
+    a = N * ZEM * sign(xt) * sign(- xt / vxt) / (tgo**2 + const.eps)
     return a
