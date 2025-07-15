@@ -1,11 +1,17 @@
-import arcade
+import arcade, pyglet
+import ctypes
 import numpy as np
 import math
 import const, simulation
 import sys, os, time
 
-SCREEN_WIDTH = 1920
-SCREEN_HEIGHT = 1080
+dpi = ctypes.windll.gdi32.GetDeviceCaps(ctypes.windll.gdi32.CreateCompatibleDC(0), 88)
+scale_factor = dpi / 96  
+
+screen_width, screen_height = arcade.get_display_size()
+
+SCREEN_WIDTH = screen_width // scale_factor
+SCREEN_HEIGHT = screen_height // scale_factor
 
 def pixel_norm(FHD_size: float):
     return FHD_size * SCREEN_HEIGHT / 1080
@@ -69,7 +75,7 @@ class ArcadeRenderer(arcade.Window):
         self.missile_sprite.append(arcade.Sprite(load_image("missile.png"), 0.004, center_x=0, center_y=0, angle=0))
 
         self.boom_sprite = arcade.SpriteList()
-        self.boom_sprite.append(arcade.Sprite(load_image("BOOM.png"), 0.008, center_x=0, center_y=0, angle=0))
+        self.boom_sprite.append(arcade.Sprite(load_image("BOOM.png"), 0.012, center_x=0, center_y=0, angle=0))
         
         self.camera = arcade.Camera2D(
             viewport=arcade.types.Viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
