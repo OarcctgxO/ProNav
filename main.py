@@ -64,7 +64,6 @@ class ArcadeRenderer(arcade.Window):
         )
         self.push_keys = (arcade.key.A, arcade.key.D)
 
-    def setup(self):
         self.land_sprite = arcade.SpriteList()
         self.land_sprite.append(arcade.Sprite(load_image("land.png"), 1, center_x=0, center_y=0, angle=0))
 
@@ -245,5 +244,4 @@ class ArcadeRenderer(arcade.Window):
 
 if __name__ == "__main__":
     window = ArcadeRenderer()
-    window.setup()
     arcade.run()
