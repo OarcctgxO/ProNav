@@ -13,19 +13,26 @@ class Airplane:
         self.a = 0.
         self.ax, self.ay = laws.norm_a(self.vx, self.vy, self.a)
         
-        self.max_speed = hypot(vx, vy)  #максимальная скорость определяется как начальная
+        self.max_speed = const.airplane_max_speed
+        self.current_speed = hypot(self.vx, self.vy)
 
-    def calc_move(self, dt):    #метод двигает самолет и записывает его положение через dt времени
-        # Считаем проекции ускорения
+    def calc_move(self, dt):
         self.ax, self.ay = laws.norm_a(self.vx, self.vy, self.a)
+        
+        if self.current_speed > const.eps:
+            self.current_speed -= hypot(self.ax, self.ay) * dt * const.air_drag
+        else:
+            self.current_speed = 0.
+            return
+        
         # Применяем ускорение к скорости
         new_vx = self.vx + self.ax * dt
         new_vy = self.vy + self.ay * dt
 
         # Ограничиваем скорость до максимума
         current_speed = hypot(new_vx, new_vy)
-        if current_speed > self.max_speed:
-            scale = self.max_speed / current_speed
+        if current_speed > self.current_speed:
+            scale = self.current_speed / current_speed
             new_vx *= scale
             new_vy *= scale
         
@@ -49,13 +56,9 @@ class Missile(Airplane):
         self.law = law  #закон наведения на цель
         self.target = target    #сама цель
         self.N = N  #коэффициент пропорциональности наведения
+        self.max_speed = self.current_speed
         
     def calc_move(self, dt):
         #считаем ускорение для перехвата цели (по одному из законов). ускорение в 2 раза больше максимального ускорения самолета
         self.a = clip(self.law(self.target, self, self.N, dt), -2* const.acceleration_pressed, 2* const.acceleration_pressed)
-        if self.max_speed > const.eps:
-            self.max_speed -= hypot(self.ax, self.ay) * dt * const.air_drag   #замедляемся пропорционально боковому усилию поворота
-        else:
-            self.max_speed = 0.
-            return
         super().calc_move(dt)

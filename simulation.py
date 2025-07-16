@@ -35,9 +35,9 @@ class Simulation:
         if arcade.key.A in keys and arcade.key.D in keys:
             self.airplane.a = 0.0
         elif arcade.key.A in keys:
-            self.airplane.a = const.acceleration_pressed
+            self.airplane.a = const.acceleration_pressed * abs(self.airplane.current_speed / const.airplane_max_speed)
         elif arcade.key.D in keys:
-            self.airplane.a = -const.acceleration_pressed
+            self.airplane.a = -const.acceleration_pressed * abs(self.airplane.current_speed / const.airplane_max_speed)
         else:
             self.airplane.a = 0.0
 

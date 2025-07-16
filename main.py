@@ -1,5 +1,6 @@
 import arcade
 import ctypes
+import arcade.types.rect
 import numpy as np
 import math
 import const, simulation
@@ -104,6 +105,12 @@ class ArcadeRenderer(arcade.Window):
             self.sim.running = False
         elif key == arcade.key.ESCAPE:
             self.close()
+            
+    def draw_speed_gauge(self):
+        r = arcade.LBWH(SCREEN_WIDTH-pixel_norm(25), pixel_norm(5), pixel_norm(20), pixel_norm(100))
+        arcade.draw_rect_outline(r, arcade.color.WHITE_SMOKE, pixel_norm(2))
+        r = arcade.LBWH(SCREEN_WIDTH-pixel_norm(25), pixel_norm(5), pixel_norm(20), pixel_norm(100) * self.sim.airplane.current_speed / const.airplane_max_speed)
+        arcade.draw_rect_filled(r, arcade.color.WHITE_SMOKE, pixel_norm(2))
 
     def draw_texts(self):
         """Отрисовать текст для HUD"""
@@ -238,6 +245,7 @@ class ArcadeRenderer(arcade.Window):
             self.current_missile_sprite.draw()
 
         self.draw_texts()
+        self.draw_speed_gauge()
         
         frame_time = time.perf_counter() - frame_time_start
         min_frame_time = 1 / const.FPS

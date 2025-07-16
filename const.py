@@ -11,3 +11,5 @@ plane_size = 2
 #НАЧАЛЬНЫЕ УСЛОВИЯ: x, y, vx, vy
 airplane_start = [400.0, 400.0, -50.0, 0.0]
 missile_start = [0.0, 0.0, 100.0, 0.0]
+
+airplane_max_speed = 50.0
