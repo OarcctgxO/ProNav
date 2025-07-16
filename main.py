@@ -64,7 +64,7 @@ class ArcadeRenderer(arcade.Window):
             arcade.key.SPACE,
             arcade.key.R,
         )
-        self.push_keys = (arcade.key.A, arcade.key.D)
+        self.push_keys = (arcade.key.W, arcade.key.A, arcade.key.S, arcade.key.D)
 
         self.land_sprite = arcade.SpriteList()
         self.land_sprite.append(arcade.Sprite(load_image("land.png"), 1, center_x=0, center_y=0, angle=0))
@@ -110,7 +110,7 @@ class ArcadeRenderer(arcade.Window):
         r = arcade.LBWH(SCREEN_WIDTH-pixel_norm(25), pixel_norm(5), pixel_norm(20), pixel_norm(100))
         arcade.draw_rect_outline(r, arcade.color.WHITE_SMOKE, pixel_norm(2))
         r = arcade.LBWH(SCREEN_WIDTH-pixel_norm(25), pixel_norm(5), pixel_norm(20), pixel_norm(100) * self.sim.airplane.current_speed / const.airplane_max_speed)
-        arcade.draw_rect_filled(r, arcade.color.WHITE_SMOKE, pixel_norm(2))
+        arcade.draw_rect_filled(r, arcade.color.WHITE_SMOKE)
 
     def draw_texts(self):
         """Отрисовать текст для HUD"""

@@ -9,7 +9,7 @@ tail_offset_time = 0.02
 win_zone_r = 5
 plane_size = 2
 #НАЧАЛЬНЫЕ УСЛОВИЯ: x, y, vx, vy
-airplane_start = [400.0, 400.0, -50.0, 0.0]
-missile_start = [0.0, 0.0, 100.0, 0.0]
+airplane_start = [400.0, 400.0, -50.0, 0.0, air_drag]
+missile_start = [0.0, 0.0, 100.0, 0.0, air_drag]
 
 airplane_max_speed = 50.0

@@ -3,40 +3,44 @@ from numpy import clip
 import const
 import laws
 
-class Airplane:
-    def __init__(self, x, y, vx, vy):
-        self.x = x  #координата x
-        self.y = y  #координата y
-        self.vx = vx    #проекция скорости на ось x
-        self.vy = vy    #проекция скорости на ось y
 
-        self.a = 0.
-        self.ax, self.ay = laws.norm_a(self.vx, self.vy, self.a)
-        
+class Airplane:
+    def __init__(self, x, y, vx, vy, air_drag):
+        self.x = x  # координата x
+        self.y = y  # координата y
+        self.vx = vx  # проекция скорости на ось x
+        self.vy = vy  # проекция скорости на ось y
+
+        self.an = 0.0
+        self.at = 0.0
+        self.ax, self.ay = laws.norm_a(self.vx, self.vy, self.an)
+
         self.max_speed = const.airplane_max_speed
         self.current_speed = hypot(self.vx, self.vy)
+        self.air_drag = air_drag
 
     def calc_move(self, dt):
-        self.ax, self.ay = laws.norm_a(self.vx, self.vy, self.a)
-        
-        if self.current_speed > const.eps:
-            self.current_speed -= hypot(self.ax, self.ay) * dt * const.air_drag
-        else:
-            self.current_speed = 0.
+        self.ax, self.ay = laws.norm_a(self.vx, self.vy, self.an)
+
+        self.current_speed += self.at * dt - hypot(self.ax, self.ay) * dt * self.air_drag
+
+        if self.current_speed < const.eps:
+            self.current_speed = 0.0
             return
+        
+        self.current_speed = clip(self.current_speed, 1, self.max_speed)
         
         # Применяем ускорение к скорости
         new_vx = self.vx + self.ax * dt
         new_vy = self.vy + self.ay * dt
 
-        # Ограничиваем скорость до максимума
-        current_speed = hypot(new_vx, new_vy)
-        if current_speed > self.current_speed:
-            scale = self.current_speed / current_speed
-            new_vx *= scale
-            new_vy *= scale
-        
-        #Считаем "реальное" ускорение (для методов наведения с учетом ускорения цели)
+        speed_after_turn = hypot(new_vx, new_vy)
+
+        scale = self.current_speed / speed_after_turn
+        new_vx *= scale
+        new_vy *= scale
+
+        # Считаем "реальное" ускорение (для методов наведения с учетом ускорения цели)
         self.ax = (new_vx - self.vx) / dt
         self.ay = (new_vy - self.vy) / dt
 
@@ -50,15 +54,20 @@ class Airplane:
         self.vx = new_vx
         self.vy = new_vy
 
+
 class Missile(Airplane):
-    def __init__(self, x, y, vx, vy, law, target, N):
-        super().__init__(x, y, vx, vy)
-        self.law = law  #закон наведения на цель
-        self.target = target    #сама цель
-        self.N = N  #коэффициент пропорциональности наведения
+    def __init__(self, x, y, vx, vy, air_drag, law, target, N):
+        super().__init__(x, y, vx, vy, air_drag)
+        self.law = law  # закон наведения на цель
+        self.target = target  # сама цель
+        self.N = N  # коэффициент пропорциональности наведения
         self.max_speed = self.current_speed
-        
+
     def calc_move(self, dt):
-        #считаем ускорение для перехвата цели (по одному из законов). ускорение в 2 раза больше максимального ускорения самолета
-        self.a = clip(self.law(self.target, self, self.N, dt), -2* const.acceleration_pressed, 2* const.acceleration_pressed)
+        # считаем ускорение для перехвата цели (по одному из законов). ускорение в 2 раза больше максимального ускорения самолета
+        self.an = clip(
+            self.law(self.target, self, self.N, dt),
+            -2 * const.acceleration_pressed,
+            2 * const.acceleration_pressed,
+        )
         super().calc_move(dt)

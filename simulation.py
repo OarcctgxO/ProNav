@@ -4,6 +4,7 @@ import bodies
 import const
 import laws
 
+
 class Simulation:
     def __init__(self):
         self.running = False
@@ -33,13 +34,26 @@ class Simulation:
 
     def handle_input(self, keys):
         if arcade.key.A in keys and arcade.key.D in keys:
-            self.airplane.a = 0.0
+            self.airplane.an = 0.0
         elif arcade.key.A in keys:
-            self.airplane.a = const.acceleration_pressed * abs(self.airplane.current_speed / const.airplane_max_speed)
+            self.airplane.an = const.acceleration_pressed * abs(
+                self.airplane.current_speed / const.airplane_max_speed
+            )
         elif arcade.key.D in keys:
-            self.airplane.a = -const.acceleration_pressed * abs(self.airplane.current_speed / const.airplane_max_speed)
+            self.airplane.an = -const.acceleration_pressed * abs(
+                self.airplane.current_speed / const.airplane_max_speed
+            )
         else:
-            self.airplane.a = 0.0
+            self.airplane.an = 0.0
+
+        if arcade.key.W in keys and arcade.key.S in keys:
+            self.airplane.at = 0.0
+        elif arcade.key.W in keys:
+            self.airplane.at = 0.05 * const.acceleration_pressed
+        elif arcade.key.S in keys:
+            self.airplane.at = -0.05 * const.acceleration_pressed
+        else:
+            self.airplane.at = 0.0
 
     def update(self, dt):
         if not self.running or self.paused or self.game_over:
@@ -58,9 +72,7 @@ class Simulation:
             self.trajectory_missile.pop(0)
 
         if (
-            hypot(
-                self.missile.x - self.airplane.x, self.missile.y - self.airplane.y
-            )
+            hypot(self.missile.x - self.airplane.x, self.missile.y - self.airplane.y)
             < const.plane_size
         ):
             self.game_over = True
