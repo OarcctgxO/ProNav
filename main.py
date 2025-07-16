@@ -39,6 +39,7 @@ def load_image(file_name: str):
 
 
 class ArcadeRenderer(arcade.Window):
+    """Главный класс, собирает вместе симуляцию и отрисовку"""
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT)
         self.set_fullscreen(True)
@@ -51,7 +52,7 @@ class ArcadeRenderer(arcade.Window):
         )
         self.keys_pressed = set()
         self.sim = simulation.Simulation()
-        self.toggle_keys = (
+        self.push_to_toggle_keys = (
             arcade.key.KEY_1,
             arcade.key.KEY_2,
             arcade.key.KEY_3,
@@ -83,14 +84,16 @@ class ArcadeRenderer(arcade.Window):
         )
 
     def update_camera(self):
+        """Обновить положение камеры с учетом положения самолета"""
         self.camera.zoom = self.sim_scale
         self.camera.position = (self.sim.airplane.x, self.sim.airplane.y)
         up_vector = (self.sim.airplane.vx, self.sim.airplane.vy)
         self.camera.up = up_vector
 
-    def toggle(self, key, modifiers):
-        if key in self.toggle_keys[:6]:
-            number = self.toggle_keys.index(key) + 1
+    def push_to_toggle(self, key, modifiers):
+        """Обрабатывает кнопки с коротким нажатием (без длительности)"""        
+        if key in self.push_to_toggle_keys[:6]:
+            number = self.push_to_toggle_keys.index(key) + 1
             self.sim.current_law = self.sim.laws[number]
             self.sim.reset()
             self.sim.running = False
@@ -103,6 +106,7 @@ class ArcadeRenderer(arcade.Window):
             self.close()
 
     def draw_texts(self):
+        """Отрисовать текст для HUD"""
         text_size = pixel_norm(20)
         text_top_left = (
             f"[1-6] Закон наведения: {self.sim.current_law.__name__}",
@@ -186,8 +190,8 @@ class ArcadeRenderer(arcade.Window):
         """Обработка нажатия клавиш"""
         if key in self.push_keys:
             self.keys_pressed.add(key)
-        elif key in self.toggle_keys:
-            self.toggle(key, modifiers)
+        elif key in self.push_to_toggle_keys:
+            self.push_to_toggle(key, modifiers)
 
     def on_key_release(self, key, modifiers):
         """Обработка отпускания клавиш"""
@@ -202,6 +206,7 @@ class ArcadeRenderer(arcade.Window):
             self.sim_scale = np.clip(self.sim_scale * 0.9, 1, 100)
 
     def on_draw(self):
+        """Главный цикл отрисовки."""        
         dt = 1 / self.sim.current_fps
         frame_time_start = time.perf_counter()
         self.clear()
@@ -233,6 +238,7 @@ class ArcadeRenderer(arcade.Window):
             self.current_missile_sprite.draw()
 
         self.draw_texts()
+        
         frame_time = time.perf_counter() - frame_time_start
         min_frame_time = 1 / const.FPS
         diff = min_frame_time - frame_time

@@ -1,9 +1,21 @@
 from math import atan2, hypot, pi
 from numpy import sign, clip
 from copy import deepcopy
-import const
+import const, bodies
 
-def norm_a(vx, vy, a): #раскладывает ускорение цели на составляющие так, что они перпендикулярны скорости
+t_norm = 1
+
+def norm_a(vx: float, vy: float, a: float) -> list[float]:
+    """Раскладывает ускорение объекта на составляющие так, что они перпендикулярны скорости.
+
+    Args:
+        vx (float): проекция скорости на ось OX
+        vy (float): проекция скорости на ось OY
+        a (float): перпендикулярное скорости ускорение, направление зависит от знака: + налево, - направо
+
+    Returns:
+        list[float]: список из проекций ускорения на оси OX и OY
+    """
     vp = hypot(vx, vy)
     if vp < const.eps:
         return [0.0, 0.0]
@@ -12,18 +24,53 @@ def norm_a(vx, vy, a): #раскладывает ускорение цели н�
     ay = a * (vx / vp)
     return [ax, ay]
 
-def join_a(vx, vy, ax, ay): #обратная операция к norm_a - собирает ускорение в одну переменную (перпендикулярную к скорости)
+def join_a(vx: float, vy: float, ax: float, ay: float) -> float:
+    """Обратная операция к norm_a - собирает ускорение в одну переменную, перпендикулярную к скорости, направление зависит от знака: + налево, - направо
+
+    Args:
+        vx (float): проекция скорости на ось OX
+        vy (float): проекция скорости на ось OY
+        ax (float): проекция ускорения на ось OX
+        ay (float): проекция ускорения на ось OY
+
+    Returns:
+        float: абсолютное ускорение, перпендикулярное скорости, направление зависит от знака: + налево, - направо
+    """
     return hypot(ax, ay) * sign(vx * ay - vy * ax)
 
-def vc(dx, dy, dvx, dvy):   #скорость сближения
+def vc(dx:float, dy:float, dvx:float, dvy:float) -> float:
+    """Абсолютная скорость сближения объектов, знак положителен при сближении
+
+    Args:
+        dx (float): разность координат x
+        dy (float): разность координат y
+        dvx (float): разность проекций скорости на OX
+        dvy (float): разность проекций скорости на OY
+
+    Returns:
+        float: абсолютная скорость сближения, знак положителен при сближении
+    """
     v = hypot(dvx, dvy) * sign(- dvx * dx - dvy * dy)
     return v
     
 
-def PP(target, pursuer, N, dt):
+def PP(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float) -> float:
+    """Pure Pursuit - простейший (и худший) из представленных законов.
+    Боковое усилие пропорционально разности углов между скоростью ракеты и направлением на цель.
+
+    Args:
+        target (bodies.Airplane): перехватываемая цель
+        pursuer (bodies.Missile): ракета
+        N (int): навигационная постоянная
+        dt (float): шаг симуляции (не используется)
+
+    Returns:
+        float: управляющее боковое усилие
+    """
     x = target.x - pursuer.x
     y = target.y - pursuer.y
-    if hypot(x, y) < const.eps:
+    d = hypot(x, y)
+    if d < const.eps:
         return 0.0
     
     vp = hypot(pursuer.vx, pursuer.vy)
@@ -34,11 +81,23 @@ def PP(target, pursuer, N, dt):
     
     angle_diff = (angle_diff + pi) % (2 * pi) - pi
     
-    a = N * (angle_diff * vp)
+    a = N * (angle_diff * vp) / t_norm
     
     return a
 
-def TPN(target, pursuer, N, dt):
+def TPN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float) -> float:
+    """True Proportional Navigation - один из самых простых законов PN семейства.
+    Боковое усилие пропорционально скорости изменения направления на цель.
+
+    Args:
+        target (bodies.Airplane): перехватываемая цель
+        pursuer (bodies.Missile): ракета
+        N (int): навигационная постоянная
+        dt (float): шаг симуляции (не используется)
+
+    Returns:
+        float: управляющее боковое усилие
+    """
     x = target.x - pursuer.x
     y = target.y - pursuer.y
     vx = target.vx - pursuer.vx
@@ -54,7 +113,18 @@ def TPN(target, pursuer, N, dt):
     
     return a
 
-def APN(target, pursuer, N, dt):
+def APN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float) -> float:
+    """Augmented Proportional Navigation - дополнение для TPN, добавляет учет ускорения угла направления на цель.
+
+    Args:
+        target (bodies.Airplane): перехватываемая цель
+        pursuer (bodies.Missile): ракета
+        N (int): навигационная постоянная
+        dt (float): шаг симуляции (не используется)
+
+    Returns:
+        float: управляющее боковое усилие
+    """
     x = target.x - pursuer.x
     y = target.y - pursuer.y
     vx = target.vx - pursuer.vx
@@ -74,13 +144,24 @@ def APN(target, pursuer, N, dt):
     d_numerator = ay * x - ax * y
     d_denominator = 2 * (x * vx + y * vy)
     
-    # Угловое ускорение
     alpha_los = (d_numerator * denominator - numerator * d_denominator) / (denominator ** 2)
     
-    a = (los_rate + alpha_los * dt) * vp * N
+    a = (los_rate + 0.5 * alpha_los * t_norm) * vp * N
     return a
 
-def ZEMPN(target, pursuer, N, dt):
+def ZEMPN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float) -> float:
+    """Zero Effort Miss Proportional Navigation - закон просчитывает промах нулевого усилия (расстояние промаха, если ракета и цель бездействуют).
+    Боковое усилие пропорционально промаху.
+
+    Args:
+        target (bodies.Airplane): перехватываемая цель
+        pursuer (bodies.Missile): ракета
+        N (int): навигационная постоянная
+        dt (float): шаг симуляции (не используется)
+
+    Returns:
+        float: управляющее боковое усилие
+    """
     x = target.x - pursuer.x
     y = target.y - pursuer.y
     vx = target.vx - pursuer.vx
@@ -111,7 +192,19 @@ def ZEMPN(target, pursuer, N, dt):
 
     return a
 
-def ZEMAPN(target, pursuer, N, dt):
+def ZEMAPN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float) -> float:
+    """Zero Effort Miss Augmented Proportional Navigation - закон пока пересматривается.
+    Боковое усилие пропорцинально промаху.
+
+    Args:
+        target (bodies.Airplane): перехватываемая цель
+        pursuer (bodies.Missile): ракета
+        N (int): навигационная постоянная
+        dt (float): шаг симуляции (не используется)
+
+    Returns:
+        float: управляющее боковое усилие
+    """
     x = target.x - pursuer.x
     y = target.y - pursuer.y
     vx = target.vx - pursuer.vx
@@ -134,7 +227,7 @@ def ZEMAPN(target, pursuer, N, dt):
     y = predictor.y - pursuer.y
     vx = - pursuer.vx
     vy = - pursuer.vy
-    # Корректируем ZEM с учётом прогнозируемой скорости
+    
     ZEMx = x + vx * tgo
     ZEMy = y + vy * tgo
 
@@ -150,7 +243,19 @@ def ZEMAPN(target, pursuer, N, dt):
 
     return (N * ZEM_proj) / tgo_sq
 
-def myZEM(target, pursuer, N, dt):
+def myZEM(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float) -> float:
+    """Мой вариант ZEMPN закона. Ракета переходит в свою систему отсчета, находит пересечение траектории цели с OY, поворачивает ракету, чтобы в этой точке ракета и цель оказались одновременно.
+    Боковое усилие пропорционально промаху.
+
+    Args:
+        target (bodies.Airplane): перехватываемая цель
+        pursuer (bodies.Missile): ракета
+        N (int): навигационная постоянная
+        dt (float): шаг симуляции (не используется)
+
+    Returns:
+        float: управляющее боковое усилие
+    """
     xt, yt, vxt, vyt = target.x, target.y, target.vx, target.vy
     xp, yp, vxp, vyp = pursuer.x, pursuer.y, pursuer.vx, pursuer.vy
     #меняем систему координат
