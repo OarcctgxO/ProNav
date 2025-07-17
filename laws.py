@@ -209,6 +209,8 @@ def ZEMAPN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: flo
     y = target.y - pursuer.y
     vx = target.vx - pursuer.vx
     vy = target.vy - pursuer.vy
+    ax = target.ax
+    ay = target.ay
     r = hypot(x, y)
     
     if r < const.eps or hypot(pursuer.vx, pursuer.vy) < const.eps:
@@ -217,19 +219,9 @@ def ZEMAPN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: flo
     numerator = x * vx + y * vy
     denominator = vx**2 + vy**2 + const.eps
     tgo = -numerator / denominator
-
-    predictor = deepcopy(target)
     
-    timesteps = int(tgo / dt)
-    for _ in range(timesteps):
-        predictor.calc_move(dt)
-    x = predictor.x - pursuer.x
-    y = predictor.y - pursuer.y
-    vx = - pursuer.vx
-    vy = - pursuer.vy
-    
-    ZEMx = x + vx * tgo
-    ZEMy = y + vy * tgo
+    ZEMx = x + vx * tgo + 0.5 * ax * tgo**2
+    ZEMy = y + vy * tgo + 0.5 * ay * tgo**2
 
     norm_x = -pursuer.vy
     norm_y = pursuer.vx

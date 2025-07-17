@@ -36,11 +36,11 @@ class Simulation:
         if arcade.key.A in keys and arcade.key.D in keys:
             self.airplane.an = 0.0
         elif arcade.key.A in keys:
-            self.airplane.an = const.acceleration_pressed * abs(
+            self.airplane.an = const.acceleration_n * abs(
                 self.airplane.current_speed / const.airplane_max_speed
             )
         elif arcade.key.D in keys:
-            self.airplane.an = -const.acceleration_pressed * abs(
+            self.airplane.an = -const.acceleration_n * abs(
                 self.airplane.current_speed / const.airplane_max_speed
             )
         else:
@@ -49,9 +49,9 @@ class Simulation:
         if arcade.key.W in keys and arcade.key.S in keys:
             self.airplane.at = 0.0
         elif arcade.key.W in keys:
-            self.airplane.at = 0.05 * const.acceleration_pressed
+            self.airplane.at = const.acceleration_t / 2
         elif arcade.key.S in keys:
-            self.airplane.at = -0.05 * const.acceleration_pressed
+            self.airplane.at = -const.acceleration_t
         else:
             self.airplane.at = 0.0
 
@@ -62,8 +62,8 @@ class Simulation:
         self.missile.calc_move(dt)
         self.trajectory_aircraft.append(
             (
-                self.airplane.x - self.airplane.vx * const.tail_offset_time,
-                self.airplane.y - self.airplane.vy * const.tail_offset_time,
+                self.airplane.x - self.airplane.vx * (const.move_trajectory / self.airplane.current_speed),
+                self.airplane.y - self.airplane.vy * (const.move_trajectory / self.airplane.current_speed),
             )
         )
         self.trajectory_missile.append((self.missile.x, self.missile.y))

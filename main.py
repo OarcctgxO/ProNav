@@ -1,18 +1,15 @@
 import arcade
 import ctypes
-import arcade.types.rect
 import numpy as np
 import math
-import const, simulation
 import sys, os, time
+
+import const, simulation
 
 dpi = ctypes.windll.gdi32.GetDeviceCaps(ctypes.windll.gdi32.CreateCompatibleDC(0), 88)
 scale_factor = dpi / 96  
 
-screen_width, screen_height = arcade.get_display_size()
-
-SCREEN_WIDTH = screen_width // scale_factor
-SCREEN_HEIGHT = screen_height // scale_factor
+SCREEN_WIDTH, SCREEN_HEIGHT = [size // scale_factor for size in arcade.get_display_size()]
 
 def pixel_norm(FHD_size: float):
     return FHD_size * SCREEN_HEIGHT / 1080

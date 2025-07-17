@@ -67,7 +67,7 @@ class Missile(Airplane):
         # считаем ускорение для перехвата цели (по одному из законов). ускорение в 2 раза больше максимального ускорения самолета
         self.an = clip(
             self.law(self.target, self, self.N, dt),
-            -2 * const.acceleration_pressed,
-            2 * const.acceleration_pressed,
+            -2 * const.acceleration_n,
+            2 * const.acceleration_n,
         )
         super().calc_move(dt)
