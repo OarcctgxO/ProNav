@@ -3,6 +3,7 @@ import ctypes
 import numpy as np
 import math
 import sys, os, time
+from numba import njit
 
 import const, simulation
 
@@ -10,9 +11,10 @@ dpi = ctypes.windll.gdi32.GetDeviceCaps(ctypes.windll.gdi32.CreateCompatibleDC(0
 scale_factor = dpi / 96  
 
 SCREEN_WIDTH, SCREEN_HEIGHT = [size // scale_factor for size in arcade.get_display_size()]
-
-def pixel_norm(FHD_size: float):
+@njit
+def pixel_norm(FHD_size: float) -> float:
     return FHD_size * SCREEN_HEIGHT / 1080
+
 
 def load_image(file_name: str):
     """Загружает изображение file_name из директории .py или EXE."""
@@ -102,7 +104,9 @@ class ArcadeRenderer(arcade.Window):
         elif key == arcade.key.ESCAPE:
             self.close()
             
-    def draw_speed_gauge(self):
+    def draw_speed_gauge(self) -> None:
+        """Рисует прямоугольник, который закрашен пропорционально текущей скорости"""
+        
         r = arcade.LBWH(SCREEN_WIDTH-pixel_norm(25), pixel_norm(5), pixel_norm(20), pixel_norm(100))
         arcade.draw_rect_outline(r, arcade.color.WHITE_SMOKE, pixel_norm(2))
         r = arcade.LBWH(SCREEN_WIDTH-pixel_norm(25), pixel_norm(5), pixel_norm(20), pixel_norm(100) * self.sim.airplane.current_speed / const.airplane_max_speed)
@@ -114,13 +118,14 @@ class ArcadeRenderer(arcade.Window):
         text_top_left = (
             f"[1-6] Закон наведения: {self.sim.current_law.__name__}",
             "[Space] Старт / Пауза",
-            "[A, D] Управление",
+            "[W, A, S, D] Управление",
             "[R] Сброс"
             "[ESC] Выход",
         )
         text_dist_win = f"Расстояние до зоны победы: {math.floor(math.hypot(self.sim.airplane.x, self.sim.airplane.y))}"
         text_dist_missile = f"Расстояние до ракеты: {math.floor(math.hypot(self.sim.airplane.x - self.sim.missile.x, self.sim.airplane.y - self.sim.missile.y))}"
         text_FPS = f'FPS: {math.floor(self.sim.current_fps)}'
+        text_bot_right = "Скорость самолета"
 
         text_top_left = arcade.Text(
             '\n'.join(text_top_left),
@@ -179,11 +184,22 @@ class ArcadeRenderer(arcade.Window):
             anchor_y="bottom",
             font_name="impact"
         )
+        
+        text_bot_right = arcade.Text(
+            text_bot_right,
+            SCREEN_WIDTH-pixel_norm(30),
+            pixel_norm(5),
+            arcade.color.WHITE,
+            text_size-2,
+            anchor_x="right",
+            anchor_y="bottom",
+            font_name="impact"
+        )
         if not self.sim.win:
             text_game_over.text = "Цель перехвачена!"
             text_game_over.color = arcade.color.RED
 
-        texts_hud = (text_top_left, text_dist_win, text_dist_missile, text_FPS)
+        texts_hud = (text_top_left, text_dist_win, text_dist_missile, text_FPS, text_bot_right)
         for t in texts_hud:
             t.draw()
         if self.sim.game_over:

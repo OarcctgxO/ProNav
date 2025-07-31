@@ -1,5 +1,6 @@
 import arcade
 from math import hypot
+
 import bodies
 import const
 import laws
@@ -54,7 +55,6 @@ class Simulation:
             self.airplane.at = -const.acceleration_t
         else:
             self.airplane.at = 0.0
-
     def update(self, dt):
         if not self.running or self.paused or self.game_over:
             return
