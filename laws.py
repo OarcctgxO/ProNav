@@ -1,10 +1,11 @@
 from math import atan2, hypot, pi
 from numpy import sign, clip
-from copy import deepcopy
+from numba import njit
 import const, bodies
 
 t_norm = 1
 
+@njit
 def norm_a(vx: float, vy: float, a: float) -> list[float]:
     """Раскладывает ускорение объекта на составляющие так, что они перпендикулярны скорости.
 
@@ -24,6 +25,7 @@ def norm_a(vx: float, vy: float, a: float) -> list[float]:
     ay = a * (vx / vp)
     return [ax, ay]
 
+@njit
 def join_a(vx: float, vy: float, ax: float, ay: float) -> float:
     """Обратная операция к norm_a - собирает ускорение в одну переменную, перпендикулярную к скорости, направление зависит от знака: + налево, - направо
 
@@ -38,6 +40,7 @@ def join_a(vx: float, vy: float, ax: float, ay: float) -> float:
     """
     return hypot(ax, ay) * sign(vx * ay - vy * ax)
 
+@njit
 def vc(dx:float, dy:float, dvx:float, dvy:float) -> float:
     """Абсолютная скорость сближения объектов, знак положителен при сближении
 
@@ -53,7 +56,6 @@ def vc(dx:float, dy:float, dvx:float, dvy:float) -> float:
     v = hypot(dvx, dvy) * sign(- dvx * dx - dvy * dy)
     return v
     
-
 def PP(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float) -> float:
     """Pure Pursuit - простейший (и худший) из представленных законов.
     Боковое усилие пропорционально разности углов между скоростью ракеты и направлением на цель.

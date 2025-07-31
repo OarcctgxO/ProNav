@@ -15,17 +15,16 @@ def pixel_norm(FHD_size: float):
     return FHD_size * SCREEN_HEIGHT / 1080
 
 def load_image(file_name: str):
-    """Загружает изображение file_name из директории скрипта или EXE."""
+    """Загружает изображение file_name из директории .py или EXE."""
     try:
         if getattr(sys, "frozen", False):
             # Для собранного EXE
             base_path = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
         else:
-            # Для режима разработки
+            # Для .py
             base_path = os.path.dirname(os.path.abspath(__file__))
-
+            
         image_path = os.path.join(base_path, file_name)
-
         if not os.path.exists(image_path):
             raise FileNotFoundError(
                 f"Файл '{file_name}' не найден по пути: {image_path}"
@@ -251,8 +250,10 @@ class ArcadeRenderer(arcade.Window):
             time.sleep(diff)
         real_FPS = np.clip(1 / frame_time, 1, const.FPS)
         self.sim.current_fps = real_FPS
-            
-
-if __name__ == "__main__":
+        
+def main():
     window = ArcadeRenderer()
     arcade.run()
+    
+if __name__ == "__main__":
+    main()
