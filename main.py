@@ -1,5 +1,5 @@
 import arcade
-import ctypes
+import tkinter as tk
 import numpy as np
 import math
 import sys, os, time
@@ -7,10 +7,13 @@ from numba import njit
 
 import const, simulation
 
-dpi = ctypes.windll.gdi32.GetDeviceCaps(ctypes.windll.gdi32.CreateCompatibleDC(0), 88)
+root = tk.Tk()
+dpi = root.winfo_fpixels('1i')
+root.destroy()
 scale_factor = dpi / 96  
 
-SCREEN_WIDTH, SCREEN_HEIGHT = [size // scale_factor for size in arcade.get_display_size()]
+SCREEN_WIDTH, SCREEN_HEIGHT = [int(size // scale_factor) for size in arcade.get_display_size()]     #int потому что иначе pylance ругается, хотя деление нацело
+
 @njit
 def pixel_norm(FHD_size: float) -> float:
     return FHD_size * SCREEN_HEIGHT / 1080

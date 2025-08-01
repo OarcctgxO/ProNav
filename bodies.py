@@ -1,8 +1,8 @@
 from math import hypot
 from numpy import clip
+
 import const
 import laws
-
 
 class Airplane:
     def __init__(self, x, y, vx, vy, air_drag):
@@ -62,7 +62,7 @@ class Missile(Airplane):
         self.target = target  # сама цель
         self.N = N  # коэффициент пропорциональности наведения
         self.max_speed = self.current_speed
-
+        
     def calc_move(self, dt):
         # считаем ускорение для перехвата цели (по одному из законов). ускорение в 2 раза больше максимального ускорения самолета
         self.an = clip(

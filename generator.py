@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 from noise import snoise2
-import time
 
 # Параметры генерации
 width, height = 4000, 4000
