@@ -122,7 +122,7 @@ class ArcadeRenderer(arcade.Window):
             f"[1-6] Закон наведения: {self.sim.current_law.__name__}",
             "[Space] Старт / Пауза",
             "[W, A, S, D] Управление",
-            "[R] Сброс"
+            "[R] Сброс",
             "[ESC] Выход",
         )
         text_dist_win = f"Расстояние до зоны победы: {math.floor(math.hypot(self.sim.airplane.x, self.sim.airplane.y))}"
