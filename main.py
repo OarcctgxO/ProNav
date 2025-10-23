@@ -3,7 +3,6 @@ import tkinter as tk
 import numpy as np
 import math
 import sys, os, time
-from numba import njit
 
 import const, simulation
 
@@ -14,7 +13,6 @@ scale_factor = dpi / 96
 
 SCREEN_WIDTH, SCREEN_HEIGHT = [int(size // scale_factor) for size in arcade.get_display_size()]     #int потому что иначе pylance ругается, хотя деление нацело
 
-@njit
 def pixel_norm(FHD_size: float) -> float:
     return FHD_size * SCREEN_HEIGHT / 1080
 
@@ -43,7 +41,7 @@ def load_image(file_name: str):
 class ArcadeRenderer(arcade.Window):
     """Главный класс, собирает вместе симуляцию и отрисовку"""
     def __init__(self):
-        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT)
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, update_rate=1/const.FPS)
         self.set_fullscreen(True)
         arcade.set_background_color(arcade.color.BLACK)
         self.sim_scale = const.scale
@@ -76,11 +74,8 @@ class ArcadeRenderer(arcade.Window):
         self.missile_sprite =arcade.Sprite(load_image("missile.png"), 0.004, center_x=0, center_y=0, angle=0)
         self.boom_sprite = arcade.Sprite(load_image("BOOM.png"), 0.012, center_x=0, center_y=0, angle=0)
         
-        self.camera = arcade.Camera2D(
-            viewport=arcade.types.Viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
-            position=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2),
-            zoom=1.0,
-        )
+        self.create_texts()
+        self.text_delay = 0
 
     def update_camera(self):
         """Обновить положение камеры с учетом положения самолета"""
@@ -112,8 +107,8 @@ class ArcadeRenderer(arcade.Window):
         r = arcade.LBWH(SCREEN_WIDTH-pixel_norm(25), pixel_norm(5), pixel_norm(20), pixel_norm(100) * self.sim.airplane.current_speed / const.airplane_max_speed)
         arcade.draw_rect_filled(r, arcade.color.WHITE_SMOKE)
 
-    def draw_texts(self):
-        """Отрисовать текст для HUD"""
+    def create_texts(self):
+        """Создание объектов текста"""
         text_size = pixel_norm(20)
         text_top_left = (
             f"[1-6] Закон наведения: {self.sim.current_law.__name__}",
@@ -122,8 +117,8 @@ class ArcadeRenderer(arcade.Window):
             "[R] Сброс",
             "[ESC] Выход",
         )
-        text_dist_win = f"Расстояние до зоны победы: {math.floor(math.hypot(self.sim.airplane.x, self.sim.airplane.y))}"
-        text_dist_missile = f"Расстояние до ракеты: {math.floor(math.hypot(self.sim.airplane.x - self.sim.missile.x, self.sim.airplane.y - self.sim.missile.y))}"
+        text_dist_win = f"Расстояние до зоны победы: {math.floor(const.hypotenuse(self.sim.airplane.x, self.sim.airplane.y))}"
+        text_dist_missile = f"Расстояние до ракеты: {math.floor(const.hypotenuse(self.sim.airplane.x - self.sim.missile.x, self.sim.airplane.y - self.sim.missile.y))}"
         text_FPS = f'FPS: {math.floor(self.sim.current_fps)}'
         text_bot_right = "Скорость самолета"
 
@@ -199,11 +194,33 @@ class ArcadeRenderer(arcade.Window):
             text_game_over.text = "Цель перехвачена!"
             text_game_over.color = arcade.color.RED
 
-        texts_hud = (text_top_left, text_dist_win, text_dist_missile, text_FPS, text_bot_right)
-        for t in texts_hud:
+        self.texts_hud = {'top_left': text_top_left, 'dist_win': text_dist_win, 'dist_missile': text_dist_missile, 'FPS': text_FPS, 'bot_right': text_bot_right}
+        self.text_game_over = text_game_over
+        
+    def update_texts(self):
+        self.texts_hud['dist_win'].text = f"Расстояние до зоны победы: {math.floor(const.hypotenuse(self.sim.airplane.x, self.sim.airplane.y))}"
+        self.texts_hud['dist_missile'].text = f"Расстояние до ракеты: {math.floor(const.hypotenuse(self.sim.airplane.x - self.sim.missile.x, self.sim.airplane.y - self.sim.missile.y))}"
+        self.texts_hud['FPS'].text = f'FPS: {math.floor(self.sim.current_fps)}'
+    
+    def draw_texts(self):
+        """Отрисовка текста HUD."""
+        
+        if self.text_delay == const.update_text_fps:
+            self.update_texts()
+            self.text_delay = 0
+        else:
+            self.text_delay += 1
+        
+        for t in self.texts_hud.values():
             t.draw()
         if self.sim.game_over:
-            text_game_over.draw()
+            if not self.sim.win:
+                self.text_game_over.text = "Цель перехвачена!"
+                self.text_game_over.color = arcade.color.RED
+            else:
+                self.text_game_over.text = "Победа!"
+                self.text_game_over.color = arcade.color.GREEN
+            self.text_game_over.draw()
 
     def on_key_press(self, key, modifiers):
         """Обработка нажатия клавиш"""
@@ -223,14 +240,15 @@ class ArcadeRenderer(arcade.Window):
             self.sim_scale = np.clip(self.sim_scale * 1.1, 1, 100)
         elif scroll_y < 0:
             self.sim_scale = np.clip(self.sim_scale * 0.9, 1, 100)
+    
+    def on_update(self, delta_time):
+        self.sim.handle_input(self.keys_pressed)
+        self.sim.update(delta_time)
+        self.sim.current_fps = int(1.0 / (delta_time + const.eps))
 
     def on_draw(self):
         """Главный цикл отрисовки."""        
-        dt = 1 / self.sim.current_fps
-        frame_time_start = time.perf_counter()
         self.clear()
-        self.sim.handle_input(self.keys_pressed)
-        self.sim.update(dt)
         self.update_camera()
 
         with self.camera.activate():
@@ -246,7 +264,6 @@ class ArcadeRenderer(arcade.Window):
             self.dynamic_sprites[0].angle = 90 - math.degrees(math.atan2(self.sim.airplane.vy, self.sim.airplane.vx))
             self.dynamic_sprites.draw()
             
-            self.current_missile_sprite = self.missile_sprite
             if self.sim.game_over and not self.sim.win:
                 self.current_missile_sprite = self.boom_sprite
             else:
@@ -258,16 +275,8 @@ class ArcadeRenderer(arcade.Window):
             self.dynamic_sprites.draw()
             self.dynamic_sprites.pop()
 
-        self.draw_texts()
         self.draw_speed_gauge()
-        
-        frame_time = time.perf_counter() - frame_time_start
-        min_frame_time = 1 / const.FPS
-        diff = min_frame_time - frame_time
-        if diff >= 0:
-            time.sleep(diff)
-        real_FPS = np.clip(1 / frame_time, 1, const.FPS)
-        self.sim.current_fps = real_FPS
+        self.draw_texts()
         
 def main():
     window = ArcadeRenderer()

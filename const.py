@@ -5,7 +5,8 @@ N = 3   #навигационная постоянная ракеты
 plane_drag = True   #замедляется ли самолет
 acceleration_n = 100    #предельное боковое ускорение самолета
 acceleration_t = 10     #предельное продольное ускорение самолета
-FPS = 120               #ограничение кадров
+FPS = 600               #ограничение кадров
+update_text_fps = 10    #частота обновления текста
 scale = 7               #начальный масштаб симуляции
 move_trajectory = 1     #сдвиг начала траектории самолета
 win_zone_r = 5          #радиус области победы
@@ -16,3 +17,6 @@ airplane_start = [400.0, 400.0, -50.0, 0.0, air_drag if plane_drag else 0.0]
 missile_start = [0.0, 0.0, 90.0, 0.0, air_drag]
 
 airplane_max_speed = 50.0
+
+def hypotenuse(a: float, b: float) -> float:
+    return (a**2 + b**2)**0.5

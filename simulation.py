@@ -1,5 +1,4 @@
 import arcade
-from math import hypot
 
 import bodies
 import const
@@ -67,16 +66,16 @@ class Simulation:
             )
         )
         self.trajectory_missile.append((self.missile.x, self.missile.y))
-        if len(self.trajectory_aircraft) > 1000:
+        if len(self.trajectory_aircraft) > 600:
             self.trajectory_aircraft.pop(0)
             self.trajectory_missile.pop(0)
 
         if (
-            hypot(self.missile.x - self.airplane.x, self.missile.y - self.airplane.y)
+            const.hypotenuse(self.missile.x - self.airplane.x, self.missile.y - self.airplane.y)
             < const.plane_size
         ):
             self.game_over = True
 
-        if hypot(self.airplane.x, self.airplane.y) < const.win_zone_r:
+        if const.hypotenuse(self.airplane.x, self.airplane.y) < const.win_zone_r:
             self.win = True
             self.game_over = True

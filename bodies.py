@@ -1,4 +1,3 @@
-from math import hypot
 from numpy import clip
 
 import const
@@ -16,13 +15,13 @@ class Airplane:
         self.ax, self.ay = laws.norm_a(self.vx, self.vy, self.an)
 
         self.max_speed = const.airplane_max_speed
-        self.current_speed = hypot(self.vx, self.vy)
+        self.current_speed = const.hypotenuse(self.vx, self.vy)
         self.air_drag = air_drag
 
     def calc_move(self, dt):
         self.ax, self.ay = laws.norm_a(self.vx, self.vy, self.an)
 
-        self.current_speed += self.at * dt - hypot(self.ax, self.ay) * dt * self.air_drag
+        self.current_speed += self.at * dt - const.hypotenuse(self.ax, self.ay) * dt * self.air_drag
 
         if self.current_speed < const.eps:
             self.current_speed = 0.0
@@ -34,7 +33,7 @@ class Airplane:
         new_vx = self.vx + self.ax * dt
         new_vy = self.vy + self.ay * dt
 
-        speed_after_turn = hypot(new_vx, new_vy)
+        speed_after_turn = const.hypotenuse(new_vx, new_vy)
 
         scale = self.current_speed / speed_after_turn
         new_vx *= scale
