@@ -70,14 +70,11 @@ class ArcadeRenderer(arcade.Window):
         self.land_sprite = arcade.SpriteList()
         self.land_sprite.append(arcade.Sprite(load_image("land.png"), 1, center_x=0, center_y=0, angle=0))
 
-        self.airplane_sprite = arcade.SpriteList()
-        self.airplane_sprite.append(arcade.Sprite(load_image("aircraft.png"), 0.01, center_x=0, center_y=0, angle=0))
-
-        self.missile_sprite = arcade.SpriteList()
-        self.missile_sprite.append(arcade.Sprite(load_image("missile.png"), 0.004, center_x=0, center_y=0, angle=0))
-
-        self.boom_sprite = arcade.SpriteList()
-        self.boom_sprite.append(arcade.Sprite(load_image("BOOM.png"), 0.012, center_x=0, center_y=0, angle=0))
+        self.dynamic_sprites = arcade.SpriteList()
+        self.dynamic_sprites.append(arcade.Sprite(load_image("aircraft.png"), 0.01, center_x=0, center_y=0, angle=0))
+        
+        self.missile_sprite =arcade.Sprite(load_image("missile.png"), 0.004, center_x=0, center_y=0, angle=0)
+        self.boom_sprite = arcade.Sprite(load_image("BOOM.png"), 0.012, center_x=0, center_y=0, angle=0)
         
         self.camera = arcade.Camera2D(
             viewport=arcade.types.Viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT),
@@ -244,20 +241,22 @@ class ArcadeRenderer(arcade.Window):
             arcade.draw_line_strip(self.sim.trajectory_missile, arcade.color.ORANGE_RED)
             arcade.draw_line_strip(self.sim.trajectory_aircraft, arcade.color.WHITE_SMOKE)
 
-            self.airplane_sprite[0].center_x = self.sim.airplane.x
-            self.airplane_sprite[0].center_y = self.sim.airplane.y
-            self.airplane_sprite[0].angle = 90 - math.degrees(math.atan2(self.sim.airplane.vy, self.sim.airplane.vx))
-            self.airplane_sprite.draw()
+            self.dynamic_sprites[0].center_x = self.sim.airplane.x
+            self.dynamic_sprites[0].center_y = self.sim.airplane.y
+            self.dynamic_sprites[0].angle = 90 - math.degrees(math.atan2(self.sim.airplane.vy, self.sim.airplane.vx))
+            self.dynamic_sprites.draw()
             
             self.current_missile_sprite = self.missile_sprite
             if self.sim.game_over and not self.sim.win:
                 self.current_missile_sprite = self.boom_sprite
             else:
                 self.current_missile_sprite = self.missile_sprite
-            self.current_missile_sprite[0].center_x = self.sim.missile.x
-            self.current_missile_sprite[0].center_y = self.sim.missile.y
-            self.current_missile_sprite[0].angle = 90 - math.degrees(math.atan2 (self.sim.missile.vy, self.sim.missile.vx))
-            self.current_missile_sprite.draw()
+            self.current_missile_sprite.center_x = self.sim.missile.x
+            self.current_missile_sprite.center_y = self.sim.missile.y
+            self.current_missile_sprite.angle = 90 - math.degrees(math.atan2 (self.sim.missile.vy, self.sim.missile.vx))
+            self.dynamic_sprites.append(self.current_missile_sprite)
+            self.dynamic_sprites.draw()
+            self.dynamic_sprites.pop()
 
         self.draw_texts()
         self.draw_speed_gauge()
