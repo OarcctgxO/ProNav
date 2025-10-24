@@ -41,7 +41,7 @@ def load_image(file_name: str):
 class ArcadeRenderer(arcade.Window):
     """Главный класс, собирает вместе симуляцию и отрисовку"""
     def __init__(self):
-        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, update_rate=1/const.FPS)
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, update_rate=1/60, vsync=True)
         self.set_fullscreen(True)
         arcade.set_background_color(arcade.color.BLACK)
         self.sim_scale = const.scale
@@ -198,6 +198,9 @@ class ArcadeRenderer(arcade.Window):
         self.text_game_over = text_game_over
         
     def update_texts(self):
+        self.texts_hud['top_left'].text = (
+            f"""[1-6] Закон наведения: {self.sim.current_law.__name__}\n[Space] Старт / Пауза\n[W, A, S, D] Управление\n[R] Сброс\n[ESC] Выход"""
+        )
         self.texts_hud['dist_win'].text = f"Расстояние до зоны победы: {math.floor(const.hypotenuse(self.sim.airplane.x, self.sim.airplane.y))}"
         self.texts_hud['dist_missile'].text = f"Расстояние до ракеты: {math.floor(const.hypotenuse(self.sim.airplane.x - self.sim.missile.x, self.sim.airplane.y - self.sim.missile.y))}"
         self.texts_hud['FPS'].text = f'FPS: {math.floor(self.sim.current_fps)}'
@@ -242,6 +245,7 @@ class ArcadeRenderer(arcade.Window):
             self.sim_scale = np.clip(self.sim_scale * 0.9, 1, 100)
     
     def on_update(self, delta_time):
+        "Обновление физики"
         self.sim.handle_input(self.keys_pressed)
         self.sim.update(delta_time)
         self.sim.current_fps = int(1.0 / (delta_time + const.eps))
