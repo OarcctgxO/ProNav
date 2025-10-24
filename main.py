@@ -18,7 +18,7 @@ def pixel_norm(FHD_size: float) -> float:
 
 
 def load_image(file_name: str):
-    """Загружает изображение file_name из директории .py или EXE."""
+    """Возвращает путь к изображению. Не зависит от того, .py файл запущен или .exe"""
     try:
         if getattr(sys, "frozen", False):
             # Для собранного EXE
@@ -41,8 +41,10 @@ def load_image(file_name: str):
 class ArcadeRenderer(arcade.Window):
     """Главный класс, собирает вместе симуляцию и отрисовку"""
     def __init__(self):
-        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, update_rate=1/60, vsync=True)
+        super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, update_rate=1/const.FPS, vsync=True)
         self.set_fullscreen(True)
+        self.cur_FPS = const.FPS
+        self.last_frame = time.perf_counter()
         arcade.set_background_color(arcade.color.BLACK)
         self.sim_scale = const.scale
         self.camera = arcade.Camera2D(
@@ -203,7 +205,7 @@ class ArcadeRenderer(arcade.Window):
         )
         self.texts_hud['dist_win'].text = f"Расстояние до зоны победы: {math.floor(const.hypotenuse(self.sim.airplane.x, self.sim.airplane.y))}"
         self.texts_hud['dist_missile'].text = f"Расстояние до ракеты: {math.floor(const.hypotenuse(self.sim.airplane.x - self.sim.missile.x, self.sim.airplane.y - self.sim.missile.y))}"
-        self.texts_hud['FPS'].text = f'FPS: {math.floor(self.sim.current_fps)}'
+        self.texts_hud['FPS'].text = f'FPS: {math.floor(self.cur_FPS)}'
     
     def draw_texts(self):
         """Отрисовка текста HUD."""
@@ -248,10 +250,13 @@ class ArcadeRenderer(arcade.Window):
         "Обновление физики"
         self.sim.handle_input(self.keys_pressed)
         self.sim.update(delta_time)
-        self.sim.current_fps = int(1.0 / (delta_time + const.eps))
 
     def on_draw(self):
-        """Главный цикл отрисовки."""        
+        """Главный цикл отрисовки."""
+        frame_time = time.perf_counter() - self.last_frame
+        self.last_frame = time.perf_counter()
+        self.cur_FPS = 1 / frame_time
+        
         self.clear()
         self.update_camera()
 
