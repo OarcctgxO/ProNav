@@ -1,11 +1,9 @@
-from math import atan2, hypot, pi
+from math import atan2, pi
 from numpy import sign, clip
-from numba import njit
 import const, bodies
 
 t_norm = 1
 
-@njit
 def norm_a(vx: float, vy: float, a: float) -> list[float]:
     """Раскладывает ускорение объекта на составляющие так, что они перпендикулярны скорости.
 
@@ -17,7 +15,7 @@ def norm_a(vx: float, vy: float, a: float) -> list[float]:
     Returns:
         list[float]: список из проекций ускорения на оси OX и OY
     """
-    vp = hypot(vx, vy)
+    vp = const.hypotenuse(vx, vy)
     if vp < const.eps:
         return [0.0, 0.0]
     vp += const.eps
@@ -25,7 +23,6 @@ def norm_a(vx: float, vy: float, a: float) -> list[float]:
     ay = a * (vx / vp)
     return [ax, ay]
 
-@njit
 def join_a(vx: float, vy: float, ax: float, ay: float) -> float:
     """Обратная операция к norm_a - собирает ускорение в одну переменную, перпендикулярную к скорости, направление зависит от знака: + налево, - направо
 
@@ -38,9 +35,8 @@ def join_a(vx: float, vy: float, ax: float, ay: float) -> float:
     Returns:
         float: абсолютное ускорение, перпендикулярное скорости, направление зависит от знака: + налево, - направо
     """
-    return hypot(ax, ay) * sign(vx * ay - vy * ax)
+    return const.hypotenuse(ax, ay) * sign(vx * ay - vy * ax)
 
-@njit
 def vc(dx:float, dy:float, dvx:float, dvy:float) -> float:
     """Абсолютная скорость сближения объектов, знак положителен при сближении
 
@@ -53,7 +49,7 @@ def vc(dx:float, dy:float, dvx:float, dvy:float) -> float:
     Returns:
         float: абсолютная скорость сближения, знак положителен при сближении
     """
-    v = hypot(dvx, dvy) * sign(- dvx * dx - dvy * dy)
+    v = const.hypotenuse(dvx, dvy) * sign(- dvx * dx - dvy * dy)
     return v
     
 def PP(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float) -> float:
@@ -71,11 +67,11 @@ def PP(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float) 
     """
     x = target.x - pursuer.x
     y = target.y - pursuer.y
-    d = hypot(x, y)
+    d = const.hypotenuse(x, y)
     if d < const.eps:
         return 0.0
     
-    vp = hypot(pursuer.vx, pursuer.vy)
+    vp = const.hypotenuse(pursuer.vx, pursuer.vy)
 
     target_angle = atan2(y, x)
     velocity_angle = atan2(pursuer.vy, pursuer.vx)
@@ -105,11 +101,11 @@ def TPN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float)
     vx = target.vx - pursuer.vx
     vy = target.vy - pursuer.vy
     
-    if hypot(x, y) <= const.eps:
+    if const.hypotenuse(x, y) <= const.eps:
         return 0.0
 
     los_rate = (vy * x - vx * y) / (x**2 + y**2)
-    vp = hypot(pursuer.vx, pursuer.vy)
+    vp = const.hypotenuse(pursuer.vx, pursuer.vy)
     
     a = los_rate * vp * N
     
@@ -134,11 +130,11 @@ def APN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: float)
     ax = target.ax - pursuer.ax
     ay = target.ay - pursuer.ay
     
-    if hypot(x, y) <= const.eps:
+    if const.hypotenuse(x, y) <= const.eps:
         return 0.0
 
     los_rate = (vy * x - vx * y) / (x**2 + y**2)
-    vp = hypot(pursuer.vx, pursuer.vy)
+    vp = const.hypotenuse(pursuer.vx, pursuer.vy)
     
     numerator = vy * x - vx * y
     denominator = x**2 + y**2 + const.eps
@@ -169,7 +165,7 @@ def ZEMPN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: floa
     vx = target.vx - pursuer.vx
     vy = target.vy - pursuer.vy
 
-    if hypot(x, y) < const.eps or hypot(pursuer.vx, pursuer.vy) < const.eps:
+    if const.hypotenuse(x, y) < const.eps or const.hypotenuse(pursuer.vx, pursuer.vy) < const.eps:
         return 0.0
 
     numerator = x * vx + y * vy
@@ -182,7 +178,7 @@ def ZEMPN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: floa
     # Нормаль к скорости ракеты (перпендикуляр)
     norm_x = -pursuer.vy
     norm_y = pursuer.vx
-    norm_length = hypot(norm_x, norm_y)
+    norm_length = const.hypotenuse(norm_x, norm_y)
     if norm_length < const.eps:
         return 0.0
 
@@ -213,9 +209,9 @@ def ZEMAPN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: flo
     vy = target.vy - pursuer.vy
     ax = target.ax
     ay = target.ay
-    r = hypot(x, y)
+    r = const.hypotenuse(x, y)
     
-    if r < const.eps or hypot(pursuer.vx, pursuer.vy) < const.eps:
+    if r < const.eps or const.hypotenuse(pursuer.vx, pursuer.vy) < const.eps:
         return 0.0
 
     numerator = x * vx + y * vy
@@ -227,7 +223,7 @@ def ZEMAPN(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: flo
 
     norm_x = -pursuer.vy
     norm_y = pursuer.vx
-    norm_length = hypot(norm_x, norm_y)
+    norm_length = const.hypotenuse(norm_x, norm_y)
     
     if norm_length < const.eps:
         return 0.0
@@ -255,7 +251,7 @@ def myZEM(target: "bodies.Airplane", pursuer: "bodies.Missile", N: int, dt: floa
     #меняем систему координат
     xt_shifted = xt - xp
     yt_shifted = yt - yp
-    vp = hypot(vxp, vyp)
+    vp = const.hypotenuse(vxp, vyp)
     cost, sint = vyp / vp, -vxp / vp
     xt_new = xt_shifted * cost + yt_shifted * sint
     yt_new = -xt_shifted * sint + yt_shifted * cost
