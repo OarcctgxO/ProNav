@@ -14,7 +14,7 @@ plane_size = 2          #размер самолета (для поражени�
 
 #НАЧАЛЬНЫЕ УСЛОВИЯ: x, y, vx, vy
 airplane_start = [500.0, 500.0, -50.0, 0.0, air_drag if plane_drag else 0.0]
-missile_start = [0.0, 0.0, 90.0, 0.0, air_drag]
+missile_start = [0.0, 0.0, 50.0, 50.0, air_drag]
 
 airplane_max_speed = 50.0
 

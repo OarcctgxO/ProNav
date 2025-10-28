@@ -7,9 +7,10 @@ import sys, os, time
 import const, simulation
 
 root = tk.Tk()
+root.withdraw()
 dpi = root.winfo_fpixels('1i')
 root.destroy()
-scale_factor = dpi / 96  
+scale_factor = dpi / 96
 
 SCREEN_WIDTH, SCREEN_HEIGHT = [int(size // scale_factor) for size in arcade.get_display_size()]     #int потому что иначе pylance ругается, хотя деление нацело
 
@@ -289,7 +290,7 @@ class ArcadeRenderer(arcade.Window):
         
 def main():
     window = ArcadeRenderer()
-    arcade.run()
+    window.run()
     
 if __name__ == "__main__":
     main()
