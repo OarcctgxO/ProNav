@@ -1,7 +1,9 @@
+from time import perf_counter
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
-from noise import snoise2
+from concurrent.futures import ProcessPoolExecutor, InterpreterPoolExecutor
+import parallel_generation
 
 # Параметры генерации
 width, height = 4000, 4000
@@ -33,41 +35,9 @@ lacunarity = 2.0
 color_noise_scale = 50.0
 color_noise_intensity = 0.20
 
-def generate_height_map(width, height, scale, octaves, persistence, lacunarity, seed):
-    x = np.arange(width)
-    y = np.arange(height)
-    xx, yy = np.meshgrid(x, y)
-    
-    height_map = np.vectorize(snoise2)(
-        xx / scale,
-        yy / scale,
-        octaves=octaves,
-        persistence=persistence,
-        lacunarity=lacunarity,
-        repeatx=1024,
-        repeaty=1024,
-        base=seed
-    )
-    return height_map
-
-def generate_color_variation(width, height, scale, intensity, seed):
-    x = np.arange(width)
-    y = np.arange(height)
-    xx, yy = np.meshgrid(x, y)
-    
-    noise = np.vectorize(snoise2)(
-        xx / scale,
-        yy / scale,
-        octaves=1,
-        persistence=0.5,
-        lacunarity=2.0,
-        repeatx=1024,
-        repeaty=1024,
-        base=seed + 1  # Другой seed для цветового шума
-    )
-    return noise * intensity
-
 def height_to_color(height_map, color_variation):
+    height_map = np.array(height_map)
+    color_variation = np.array(color_variation)
     color_map = np.zeros((*height_map.shape, 3), dtype=np.uint8)
     
     # Маски для каждого биома
@@ -121,15 +91,32 @@ def height_to_color(height_map, color_variation):
     
     return color_map
 
-# Генерация данных
-height_map = generate_height_map(width, height, scale, octaves, persistence, lacunarity, seed)
-color_variation = generate_color_variation(width, height, color_noise_scale, color_noise_intensity, seed)
-color_map = height_to_color(height_map, color_variation)
 
-# Сохранение и отображение
-image = Image.fromarray(color_map)
-image.save("land.png")
+if __name__ == '__main__':
+    # Генерация данных
+    pool = ProcessPoolExecutor(max_workers=8)
+    
+    print('start generation')
+    start_time = perf_counter()
+    print('generating heigth_map...')
+    
+    height_map = parallel_generation.vectorized_noise(width, height, scale, octaves, persistence, lacunarity, seed, pool)
+    
+    print(f"height_map done in {perf_counter()-start_time}")
+    start_time = perf_counter()
+    print('generating color_variation...')
+    
+    color_variation = parallel_generation.vectorized_color(width, height, color_noise_scale, color_noise_intensity, seed, pool)
+    
+    print(f"color_variation done in {perf_counter()-start_time}")
+    start_time = perf_counter()
+    
+    color_map = height_to_color(height_map, color_variation)
 
-plt.imshow(color_map)
-plt.axis("off")
-plt.show()
+    # Сохранение и отображение
+    image = Image.fromarray(color_map)
+    image.save("land.png")
+
+    plt.imshow(color_map)
+    plt.axis("off")
+    plt.show()
