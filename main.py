@@ -75,7 +75,7 @@ class ArcadeRenderer(arcade.Window):
         self.dynamic_sprites.append(arcade.Sprite(load_image("aircraft.png"), 0.01, center_x=0, center_y=0, angle=0))
         
         self.missile_sprite =arcade.Sprite(load_image("missile.png"), 0.004, center_x=0, center_y=0, angle=0)
-        self.boom_sprite = arcade.Sprite(load_image("BOOM.png"), 0.012, center_x=0, center_y=0, angle=0)
+        self.boom_sprite = arcade.Sprite(load_image("boom.png"), 0.012, center_x=0, center_y=0, angle=0)
         
         self.create_texts()
         self.text_delay = 0
