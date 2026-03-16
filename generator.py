@@ -83,7 +83,7 @@ def height_to_color(height_map, color_variation):
         transition_mask = (height_map >= height_val - transition_width) & (height_map < height_val + transition_width)
         if np.any(transition_mask):
             factor = (height_map[transition_mask] - (height_val - transition_width)) / (2 * transition_width)
-            base_color = np.array(color1) * (1 - factor[..., np.newaxis]) + np.array(color2) * factor[..., np.newaxis]
+            base_color = np.array(color1) * (1 - factor[..., np.newaxis]) + np.array(color2) * factor[..., np.newaxis] # type: ignore
             # Применяем вариацию к переходной зоне
             variation_factor = 1.0 + color_variation[transition_mask] * 0.5
             varied_color = base_color * variation_factor[..., np.newaxis]
